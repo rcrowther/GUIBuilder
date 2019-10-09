@@ -1,0 +1,14 @@
+== depends
+-- meson (inc. ninja)
+-- libgtk-dev
+-- Python3
+
+== Generate code
+> ./builder.py
+
+== compile
+> meson build
+
+nav into build
+> ninja
+> ./demo
