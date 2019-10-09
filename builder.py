@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 import os
-
-
 import collections
+
 
 #! Root to make Window too (so attributes added)
 #! want Tabs,
@@ -29,6 +28,7 @@ def warning(msg, data):
 def error(msg, data):
     print("{}[Error]{} {}:".format(ERROR, RESET, msg))
     print("    {}".format(data))
+
 
 """ 
 gui.structure(""
@@ -73,9 +73,9 @@ demoGUIStyle = """
     #dropArea {type: images}
     #dropicon {url:""/nice/image/icon.png"}
     #dropInstructions { text: ""choose a photo or add it here"}
-    #container {background-color: light-blue; orientation:vertical; }
+    #container {background-color: light-blue; }
     #fileList {h: expand; v: shrink; }
-    #dropArea {h: expand; max-height: 20%; font-size:Large; font-weight:bold; }
+    #dropArea {h: expand; max-height: 20%; font-size:large; font-weight:bold; }
     #sendButton {font-size: large; background-color: mid-blue; color: white;}
 """
 
@@ -116,17 +116,6 @@ def modelParse(text):
             end = idIdx
         oType = lStripLine[:end]
         
-            
-            
-        # oType = lStripLine[0, idIdx]
-        # oId = ""
-
-        # parsedObject = lStripLine.split("#")
-        # oType = parsedObject[0]
-        # oId = ""
-        # if (len(parsedObject) > 1):
-            # parsedObject = lStripLine.split("|")
-            # oId = parsedObject[1] 
         DObj = DOMObject(otype=oType, oid=oId, klass="", oattrs={}, children=[])
         # str as an attribute as it niether key nor group?
         if (oStr):
@@ -135,6 +124,8 @@ def modelParse(text):
         #print(str(newIndent))
         #print(str(DObj))
         
+        # Add object to object model, adjusting
+        # parents if necessary
         if (newIndent > indent):
             objStack.append(currentParent)
             lastObj = currentParent.children[-1]
@@ -194,32 +185,56 @@ def styleParse(styleTxt):
         # if empty line...
         if (not lsEntry):
             continue
-        parsedStyle = lsEntry.split("{")
-        
-        # parse id
-        #! cheap solution
-        oId = parsedStyle[0].split("#")[1].rstrip()
+            
+        # get oid    
+        valuesIdx = lsEntry.find("{")
+        idIdx = lsEntry.find("#")
+        oId = lsEntry[idIdx + 1:valuesIdx].rstrip()
         if not oId:
             warning("failed to parse style identifier", lsEntry)
             continue
-        
-        #print(str(parsedStyle))
-        #print(str(oId))
-                
-        #parse attr dict
-        attrDict ={}
-        for attrEntry in parsedStyle[1].split(";"):
-            sAttrEntry = attrEntry.strip()
-            if not sAttrEntry:
-                continue
-            parsedAttrEntry = sAttrEntry.split(":")
-            if not len(parsedAttrEntry) == 2:
-                warning("failed to parse style attributes", sAttrEntry)
-                continue
-            attrId = parsedAttrEntry[0].rstrip()
-            attrValue = parsedAttrEntry[1].lstrip()
             
-            attrDict[attrId] = attrValue
+        # get values
+        attrDict ={}
+
+        start = valuesIdx + 1
+        end = lsEntry.find(";", start)
+        while (end != -1):
+          assoc = lsEntry.find(":", start)
+          key = lsEntry[start : assoc].strip()
+          value = lsEntry[assoc + 1 : end].strip()
+          attrDict[key] = value
+          start = end + 1
+          #print(str(start))
+          end = lsEntry.find(";", start)
+        
+        # attrDict = {}
+         
+        # #######################
+        # # parse id
+        # #! cheap solution
+        # oId = parsedStyle[0].split("#")[1].rstrip()
+        # if not oId:
+            # warning("failed to parse style identifier", lsEntry)
+            # continue
+        
+        # #print(str(parsedStyle))
+        # #print(str(oId))
+                
+        # #parse attr dict
+        # attrDict ={}
+        # for attrEntry in parsedStyle[1].split(";"):
+            # sAttrEntry = attrEntry.strip()
+            # if not sAttrEntry:
+                # continue
+            # parsedAttrEntry = sAttrEntry.split(":")
+            # if not len(parsedAttrEntry) == 2:
+                # warning("failed to parse style attributes", sAttrEntry)
+                # continue
+            # attrId = parsedAttrEntry[0].rstrip()
+            # attrValue = parsedAttrEntry[1].lstrip()
+            
+            # attrDict[attrId] = attrValue
             
         #NB: appended as the model parses 'text' attribute
         if not(oId in styleModel):
