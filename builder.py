@@ -13,8 +13,11 @@ import collections
 #! external wiring?
 #! PrettyPrint as original form?
 #! Spacing padding borders...
+#! linter
 
-DOMObject = collections.namedtuple('DOMObject', 'otype oid klass oattrs children')
+DOMObject = collections.namedtuple('DOMObject', 'otype oid sClass klass oattrs children')
+
+#! Generally, no errors, need linter
 ERROR= '\033[91m'
 #WARNING= "\033[93m"
 WARNING= "\033[33m"
@@ -57,15 +60,15 @@ VBox#container
 """
 demoGUIStructure = """
 VBox#container
-    Label|example label
+    Label.warning|example label
     LabelButton#sendButton|Sad Cafe
     TextEntry
     TextArea
     SelectEntry
     CheckButton|Default Encoding
-    RadioButton|Left
-    RadioButton|Right
-    RadioButton|Offboard
+    RadioButton*group1|Left
+    RadioButton*group1|Right
+    RadioButton*group1|Offboard
 """
 
 demoGUIStyle = """
@@ -89,7 +92,7 @@ containerNames = [
 
 #! No errors considered
 def modelParse(text):
-    treeRoot = DOMObject(otype="Root", oid="", klass="", oattrs={}, children=[])
+    treeRoot = DOMObject(otype="Root", oid="", sClass="", klass="", oattrs={}, children=[])
     currentParent = treeRoot
     objStack = [currentParent]
     indent = 0
@@ -103,20 +106,40 @@ def modelParse(text):
         newIndent = initLen - lStriplineLen
 
         # Parse the object
+        #! change to 'start'
+        ## Text
         end = lStriplineLen
         strIdx = lStripLine.find("|")
         oStr = ""
         if (strIdx != -1):
             oStr = lStripLine[strIdx + 1: end]
             end = strIdx
+
+        ## Class
+        start = lStripLine.find(".")
+        oClass = ""
+        if (start != -1):
+            oClass = lStripLine[start + 1: end]
+            end = start
+            
+        ## Struct class
+        start = lStripLine.find("*")
+        sClass = ""
+        if (start != -1):
+            sClass = lStripLine[start + 1: end]
+            end = start
+            
+        ## Id   
         idIdx = lStripLine.find("#")
         oId = ""
         if (idIdx != -1):
             oId = lStripLine[idIdx + 1: end]
             end = idIdx
+            
+        ## Type
         oType = lStripLine[:end]
         
-        DObj = DOMObject(otype=oType, oid=oId, klass="", oattrs={}, children=[])
+        DObj = DOMObject(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs={}, children=[])
         # str as an attribute as it niether key nor group?
         if (oStr):
           DObj.oattrs["text"] = oStr
@@ -130,7 +153,7 @@ def modelParse(text):
             objStack.append(currentParent)
             lastObj = currentParent.children[-1]
             if (not (lastObj.otype in containerNames)):
-                implicitBox = DOMObject(otype="VBox", oid="", klass="", oattrs={}, children=[])
+                implicitBox = DOMObject(otype="VBox", oid="", sClass="", klass="", oattrs={}, children=[])
                 currentParent.children.append(implicitBox)
                 lastObj = implicitBox
             currentParent = lastObj
@@ -205,7 +228,6 @@ def styleParse(styleTxt):
           value = lsEntry[assoc + 1 : end].strip()
           attrDict[key] = value
           start = end + 1
-          #print(str(start))
           end = lsEntry.find(";", start)
         
         # attrDict = {}
@@ -306,26 +328,62 @@ def newVariableName(oType):
   data[1] = data[1] + 1
   return name
    
-GTKWidgetCreate = {
-  "VBox": "= gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);",
-  "HBox": "= gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);",
-  "Label" : '= gtk_label_new ("{}");',
-  "TextEntry" : "= gtk_entry_new ();",
-  "TextArea" : "= gtk_text_view_new ();",
-  "SelectEntry" : "= gtk_combo_box_new ();",
-  "LabelButton": '= gtk_button_new_with_label ("{}");',
-  "RadioButton": '= gtk_radio_button_new_with_label (NULL, "{}");',
-  "CheckButton": '= gtk_check_button_new_with_label ("{}");',
-  #"StatusBar": "= gtk_statusbar_new();",
+   
+#! With the complexities of radiobuttons,
+# the below has become sadly un-dry.
+
+# groupname (sClass) -> last_var_in_group
+RadioGroups = {}
+    
+def VBox(b, obj, varname):
+  b.append('    {} = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);'.format(varname))
+def HBox(b, obj, varname):
+  b.append('    {} = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);'.format(varname))
+def Label(b, obj, varname):
+  b.append('    {} = gtk_label_new ("{}");'.format(varname, obj.oattrs["text"]))
+def TextEntry(b, obj, varname):
+  b.append('    {} = gtk_entry_new ();'.format(varname))
+def TextArea(b, obj, varname):
+  b.append('    {} = gtk_text_view_new ();'.format(varname))
+def SelectEntry(b, obj, varname):
+  b.append('    {} = gtk_combo_box_new ();'.format(varname))
+def LabelButton(b, obj, varname):
+  b.append('    {} = gtk_button_new_with_label ("{}");'.format(varname, obj.oattrs["text"]))
+def RadioButton(b, obj, varname):
+  b.append('    {} = gtk_radio_button_new_with_label (NULL, "{}");'.format(varname, obj.oattrs["text"]))
+  groupName = obj.sClass
+  if (groupName in RadioGroups):
+    src_varname = RadioGroups[groupName]
+    b.append("    gtk_radio_button_join_group (GTK_RADIO_BUTTON ({}), GTK_RADIO_BUTTON ({}));".format(varname, src_varname))
+  else:
+    RadioGroups[groupName] = varname
+        
+def CheckButton(b, obj, varname):
+  b.append('    {} = gtk_check_button_new_with_label ("{}");'.format(varname, obj.oattrs["text"]))
+
+
+WidgetCreate = {
+  "VBox": VBox,
+  "HBox": HBox,
+  "Label" : Label,
+  "TextEntry" : TextEntry,
+  "TextArea" : TextArea,
+  "SelectEntry" : SelectEntry,
+  "LabelButton": LabelButton,
+  "RadioButton": RadioButton,
+  "CheckButton": CheckButton,
+  #"StatusBar":  StatusBar,
   }
 
-ObjCreatedWithText = [
-  #"TextArea",
-  "Label",
-  "LabelButton",
-  "RadioButton",
-  "CheckButton",
-  ]
+
+#NB Save for linter
+# ObjCreatedWithText = [
+  # #"TextArea",
+  # "Label",
+  # "LabelButton",
+  # "RadioButton",
+  # "CheckButton",
+  # ]
   
 GTKContainers = [
   "Root",
@@ -380,11 +438,9 @@ WidgetAttributeCode = {
   
 def widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname):
   # Create widget
-  createStatement = GTKWidgetCreate[obj.otype]
-  if (obj.otype in ObjCreatedWithText):
-      txt = obj.oattrs.get("text", "")
-      createStatement = createStatement.format(txt)
-  statementBuilder.append("    {} {}".format(varname, createStatement))
+  # joined with newline---so this makes a one newline separator
+  statementBuilder.append("")
+  WidgetCreate[obj.otype](statementBuilder, obj, varname)
 
   # Add attributes. 
   #! Like button text would be a start
