@@ -4,8 +4,7 @@ import os
 import collections
 import sys
 
-#! Root to make Window too (so attributes added)
-#! want Tabs,
+#! Convert attrs to funcs
 #! working markup a challenge
 #! make into callable module
 #! Selector box definitions?
@@ -64,6 +63,16 @@ VBox#container
     TextBox#status
 """
 demoGUIStructure = """
+  TopWin|Builder Demo
+    PageBox#pages
+      VBox|info
+        Label|trigger
+      VBox|options
+        CheckButton|null force
+        CheckButton|zero force
+
+"""
+"""
 TopWin|Builder Demo
     VBox#container
         Label.warning|example label
@@ -83,6 +92,7 @@ demoGUIStyle = """
     #dropicon {url:""/nice/image/icon.png"}
     #dropInstructions { text: ""choose a photo or add it here"}
     #container {background-color: light-blue; padding: 30;}
+    #pages {pos: left;}
     #fileList {h: expand; v: shrink; }
     #dropArea {h: expand; max-height: 20%; font-size:large; font-weight:bold; }
     #sendButton {font-size: large; background-color: mid-blue; color: white;}
@@ -92,7 +102,8 @@ demoGUIStyle = """
 containerNames = [
   "TopWin",
   "VBox", 
-  "HBox", 
+  "HBox",
+  "PageBox", 
   #"StatusBar", 
   "DropBox"
   ]
@@ -313,7 +324,7 @@ title = gtk_label_new("Windows");
 """
 
 
-# for variable nabes
+# for variable names
 GTKWidgetBaseNames = {
   "TopWin": ["win", 0],
   "VBox": ["vbox", 0],
@@ -325,6 +336,8 @@ GTKWidgetBaseNames = {
   "TextEntry" : ["text_entry", 0],
   "TextArea" : ["text_area", 0],
   "LabelButton": ["label_btn", 0],
+  "PageBox": ["page_box", 0],
+  #"Page": ["page", 0],
   #"StatusBar": ["statusbar", 0],
   }
 
@@ -343,7 +356,6 @@ RadioGroups = {}
   
 def TopWin(b, obj, varname):
   b.append('    {} = gtk_window_new(GTK_WINDOW_TOPLEVEL);'.format(varname))
-  #b.append('    g_signal_connect({}, "destroy", G_CALLBACK(gtk_main_quit), NULL);'.format(varname))  
 def VBox(b, obj, varname):
   b.append('    {} = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);'.format(varname))
 def HBox(b, obj, varname):
@@ -370,7 +382,17 @@ def RadioButton(b, obj, varname):
 def CheckButton(b, obj, varname):
   b.append('    {} = gtk_check_button_new_with_label ("{}");'.format(varname, obj.oattrs["text"]))
 
+def PageBox(b, obj, varname):
+  b.append('    {} = gtk_notebook_new ();'.format(varname))
 
+# def Page(b, obj, varname):
+  # labelName = varname + "_label"
+  # b.append('    Label * {} = gtk_label_new ("{}");'.format(labelName, obj.oattrs["text"]))
+  # bodyName = varname + "_body"
+  # b.append('    Box * {} = gtk_box_new (GTK_ORIENTATION_VERTICAL, 1);'.format(bodyName))
+  # #b.append('    gtk_notebook_append_page (GTK_NOTEBOOK({}), {},"{}");'.format(varname, bodyName, labelName))
+  
+  
 WidgetCreate = {
   "TopWin": TopWin,
   "VBox": VBox,
@@ -382,6 +404,8 @@ WidgetCreate = {
   "LabelButton": LabelButton,
   "RadioButton": RadioButton,
   "CheckButton": CheckButton,
+  "PageBox" : PageBox,
+  #"Page" : Page, 
   #"StatusBar":  StatusBar,
   }
 
@@ -407,6 +431,17 @@ GTKBoxes = [
   "HBox",
   ]
 
+GTKPosition = {
+    "left": "GTK_POS_LEFT",
+    "right": "GTK_POS_RIGHT",
+    "top": "GTK_POS_TOP",
+    "bottom": "GTK_POS_BOTTOM",
+        }
+        
+def notebookPos(k, v):
+    return "    gtk_notebook_set_tab_pos(GTK_NOTEBOOK({}), GTK_POS_LEFT);".format(k, GTKPosition[v])
+
+#! convert to funcs
 WidgetAttributeCode = {
   "TopWin" : {
     "text" : '    gtk_window_set_title(GTK_WINDOW({}), "{}");'
@@ -430,6 +465,10 @@ WidgetAttributeCode = {
         },
   "CheckButton" : {
         },  
+  "PageBox" : {
+    #"pos": notebookPos,
+    "pos": "gtk_notebook_set_tab_pos(GTK_NOTEBOOK({}), GTK_POS_LEFT);"
+        },
 }
 
 
@@ -456,6 +495,11 @@ def widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname):
     statementBuilder.append("    gtk_container_add(GTK_CONTAINER({}), {});".format(parentVar, varname))
   elif (parentObj.otype in GTKBoxes):
     statementBuilder.append("    gtk_box_pack_start(GTK_BOX({}), {}, TRUE, TRUE, 0);".format(parentVar, varname))
+  elif (parentObj.otype == "PageBox"):
+    labelName = varname + "_label"
+    statementBuilder.append('    GtkWidget * {} = gtk_label_new ("{}");'.format(labelName, obj.oattrs["text"]))
+    statementBuilder.append("    gtk_notebook_append_page (GTK_NOTEBOOK({}), GTK_WIDGET({}), GTK_WIDGET({}));".format(parentVar, varname, labelName))
+
   else:
     #? else do nothing?
     warning("'{}#{}' not recognised as a container".format(parentObj.otype, parentObj.oid),"'{}#{}' is unpacked".format(obj.otype, obj.oid))
