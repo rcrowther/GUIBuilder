@@ -2,20 +2,25 @@
 
 import os
 import collections
-
+import sys
 
 #! Root to make Window too (so attributes added)
 #! want Tabs,
 #! working markup a challenge
-#! grouping radio buttons challenge
 #! make into callable module
 #! Selector box definitions?
 #! external wiring?
 #! PrettyPrint as original form?
 #! Spacing padding borders...
 #! linter
+# - one root
+# - well formed data 
+# - text objects have text
+# - radios have osClass
+# - obj types exist
 
 DOMObject = collections.namedtuple('DOMObject', 'otype oid sClass klass oattrs children')
+DOMObjectEmpty = DOMObject(otype="Empty", oid="none", sClass="none", klass="none", oattrs={}, children=[])
 
 #! Generally, no errors, need linter
 ERROR= '\033[91m'
@@ -59,16 +64,17 @@ VBox#container
     TextBox#status
 """
 demoGUIStructure = """
-VBox#container
-    Label.warning|example label
-    LabelButton#sendButton|Sad Cafe
-    TextEntry
-    TextArea
-    SelectEntry
-    CheckButton|Default Encoding
-    RadioButton*group1|Left
-    RadioButton*group1|Right
-    RadioButton*group1|Offboard
+TopWin|Builder Demo
+    VBox#container
+        Label.warning|example label
+        LabelButton#sendButton|Sad Cafe
+        TextEntry
+        TextArea
+        SelectEntry
+        CheckButton|Default Encoding
+        RadioButton*group1|Left
+        RadioButton*group1|Right
+        RadioButton*group1|Offboard
 """
 
 demoGUIStyle = """
@@ -76,7 +82,7 @@ demoGUIStyle = """
     #dropArea {type: images}
     #dropicon {url:""/nice/image/icon.png"}
     #dropInstructions { text: ""choose a photo or add it here"}
-    #container {background-color: light-blue; }
+    #container {background-color: light-blue; padding: 30;}
     #fileList {h: expand; v: shrink; }
     #dropArea {h: expand; max-height: 20%; font-size:large; font-weight:bold; }
     #sendButton {font-size: large; background-color: mid-blue; color: white;}
@@ -84,6 +90,7 @@ demoGUIStyle = """
 
 # for detection of implicit boxes
 containerNames = [
+  "TopWin",
   "VBox", 
   "HBox", 
   #"StatusBar", 
@@ -92,10 +99,14 @@ containerNames = [
 
 #! No errors considered
 def modelParse(text):
+    # The init setup is to stack an anchor Obj called 'Root', then set 
+    # the indent high. Whatever the initial indent, it will be low, so
+    # the anchor is unstacked and set as the current parent.
     treeRoot = DOMObject(otype="Root", oid="", sClass="", klass="", oattrs={}, children=[])
+    #treeRoot = DOMObjectEmpty
     currentParent = treeRoot
     objStack = [currentParent]
-    indent = 0
+    indent = sys.maxsize
     for l in iter(text.splitlines()):
         initLen = len(l) 
         lStripLine = l.lstrip()
@@ -149,6 +160,7 @@ def modelParse(text):
         
         # Add object to object model, adjusting
         # parents if necessary
+        ## is Child
         if (newIndent > indent):
             objStack.append(currentParent)
             lastObj = currentParent.children[-1]
@@ -159,10 +171,12 @@ def modelParse(text):
             currentParent = lastObj
             indent = newIndent
             
+        ## revert to parents
         if (newIndent < indent):
             currentParent = objStack.pop()
             indent = newIndent
             
+        ## else is sibling. Now...
         currentParent.children.append(DObj)
     return treeRoot
         
@@ -264,31 +278,26 @@ def styleParse(styleTxt):
         styleModel[oId].update(attrDict)
     #print(styleModel)
     return styleModel
-
     
+
 def codeOpen(b):
     b.append(
 """#include<gtk/gtk.h>
 
-void buildGUI(GtkWidget *win) {
+void buildGUI() {
   /* Auto generated code. Heedless change generates turmoil */
 """)
 
 def codeClose(b):
     b.append(
-"""
-}
+"""}
 
 int main(int argc, char **argv) {
-  GtkWidget *win;
   gtk_init(&argc, &argv);
-  win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   /*  gtk_window_set_title(GTK_WINDOW(win), "Hello there"); */
 
-  buildGUI(win);
+  buildGUI();
 
-  g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
-  gtk_widget_show_all(win);
   gtk_main();
 }
 """)
@@ -303,13 +312,10 @@ title = gtk_label_new("Windows");
       statusbar = gtk_statusbar_new();
 """
 
-       
-#GTKWidgetAttribute = {
-#"orientation": "GtkOrientation orientation"
-#}
 
 # for variable nabes
 GTKWidgetBaseNames = {
+  "TopWin": ["win", 0],
   "VBox": ["vbox", 0],
   "HBox": ["hbox", 0],
   "Label": ["label", 0],
@@ -334,7 +340,10 @@ def newVariableName(oType):
 
 # groupname (sClass) -> last_var_in_group
 RadioGroups = {}
-    
+  
+def TopWin(b, obj, varname):
+  b.append('    {} = gtk_window_new(GTK_WINDOW_TOPLEVEL);'.format(varname))
+  #b.append('    g_signal_connect({}, "destroy", G_CALLBACK(gtk_main_quit), NULL);'.format(varname))  
 def VBox(b, obj, varname):
   b.append('    {} = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);'.format(varname))
 def HBox(b, obj, varname):
@@ -363,6 +372,7 @@ def CheckButton(b, obj, varname):
 
 
 WidgetCreate = {
+  "TopWin": TopWin,
   "VBox": VBox,
   "HBox": HBox,
   "Label" : Label,
@@ -386,7 +396,8 @@ WidgetCreate = {
   # ]
   
 GTKContainers = [
-  "Root",
+  #NB dont pack topwin :)
+  "TopWin",
   #"LabelButton",
   ]
 
@@ -397,40 +408,27 @@ GTKBoxes = [
   ]
 
 WidgetAttributeCode = {
-      
-#  "TopWindow"??? : {
-#    "text" : "    gtk_window_set_title(GTK_WINDOW({}), {});"
-#    },
-    #Label
+  "TopWin" : {
+    "text" : '    gtk_window_set_title(GTK_WINDOW({}), "{}");'
+    },
   "Label" : {
   #? colors
-    #"text": "    gtk_label_set_text(GTK_LABEL({}), {});"
         },    
-    #Box
   "VBox" : {
-  #? colors
-  #! GTK_ORIENTATION_HORIZONTAL GTK_ORIENTATION_VERTICAL
-    #"orientation": "    gtk_orientable_set_orientation(GTK_BOX({}), {});"
+    "padding": "    gtk_container_set_border_width(GTK_CONTAINER({}), {});"
     },
   "HBox" : {
-  #? colors
-  #! GTK_ORIENTATION_HORIZONTAL GTK_ORIENTATION_VERTICAL
-    #"orientation": "    gtk_orientable_set_orientation(GTK_BOX({}), {});"
+    "padding": "    gtk_container_set_border_width(GTK_CONTAINER({}), {});"
     },
-    #Entry
   "TextEntry" : {
-    #"text": "    gtk_entry_set_text(GTK_ENTRY({}), {});"
     },   
   "TextArea" : {
     #! No, not that simple, its a buffer
-    #"text": "    gtk_textview_set_text(GTK_ENTRY({}), {});"
     },  
   "LabelButton" : {
 #? colors
-    #"text": "    gtk_button_set_label(GTK_BUTTON({}), {});"
         },
   "CheckButton" : {
-    #"text": "    gtk_button_set_label(GTK_BUTTON({}), {});"
         },  
 }
 
@@ -443,9 +441,6 @@ def widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname):
   WidgetCreate[obj.otype](statementBuilder, obj, varname)
 
   # Add attributes. 
-  #! Like button text would be a start
-  #gtk_container_add(label).
-  #! Window title?
   #! respect text color? if not background?
   #! and orientation of boxes?
   # box_set_orientation (GTK_ORIENTATION_VERTICAL)
@@ -465,26 +460,30 @@ def widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname):
     #? else do nothing?
     warning("'{}#{}' not recognised as a container".format(parentObj.otype, parentObj.oid),"'{}#{}' is unpacked".format(obj.otype, obj.oid))
   
-
-        
         
 def buildCodeRec(obj, b, statementBuilder, parentObj, parentVar):
-  #if (obj.otype in GTKWidgetBaseNames):  
-  varname = newVariableName(obj.otype)
-  b.append("    GtkWidget *{};".format(varname))
-  widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname)
   for child in obj.children:
+    varname = newVariableName(child.otype)
+    b.append("    GtkWidget *{};".format(varname))
+    #(obj, statementBuilder, parentObj, parentVar, varname)
+    widgetDeclarations(child, statementBuilder, obj, parentVar, varname)
     buildCodeRec(child, b, statementBuilder, obj, varname)
         
 
 def buildCode(objModel):
+    # Works naturally from child of objModel
     b = []
     statementBuilder = []
-    buildCodeRec(objModel.children[0], b, statementBuilder, objModel, "win")
-    b.append("\n")
+    buildCodeRec(objModel, b, statementBuilder, DOMObjectEmpty, "")
+    
+    statementBuilder.append("\n")
+    statementBuilder.append('    g_signal_connect(win0, "destroy", G_CALLBACK(gtk_main_quit), NULL);')
+    statementBuilder.append("    gtk_widget_show_all(win0);")
+
+    # append statements after declarations
     b.extend(statementBuilder)
     return b
-    
+        
 def write(b):
     #if (obj.otype == "Box"):
         
