@@ -4,6 +4,9 @@ import os
 import collections
 import sys
 
+import Parser
+
+#! robuster parsers
 #! Convert attrs to funcs
 #! working markup a challenge
 #! make into callable module
@@ -62,16 +65,6 @@ VBox#container
   StatusBar
     TextBox#status
 """
-demoGUIStructure = """
-  TopWin|Builder Demo
-    PageBox#pages
-      VBox|info
-        Label|trigger
-      VBox|options
-        CheckButton|null force
-        CheckButton|zero force
-
-"""
 """
 TopWin|Builder Demo
     VBox#container
@@ -86,8 +79,20 @@ TopWin|Builder Demo
         RadioButton*group1|Offboard
 """
 
+demoGUIStructure = """
+  TopWin|Builder Demo
+    PageBox#pages
+      VBox|info
+        Label|trigger
+      VBox|options
+        CheckButton|null force
+        CheckButton|zero force
+
+"""
+
 demoGUIStyle = """
     #win {text: ""PhotoEmailer"}
+    TopWin {padding: 30;}
     #dropArea {type: images}
     #dropicon {url:""/nice/image/icon.png"}
     #dropInstructions { text: ""choose a photo or add it here"}
@@ -108,88 +113,88 @@ containerNames = [
   "DropBox"
   ]
 
-#! No errors considered
-def modelParse(text):
-    # The init setup is to stack an anchor Obj called 'Root', then set 
-    # the indent high. Whatever the initial indent, it will be low, so
-    # the anchor is unstacked and set as the current parent.
-    treeRoot = DOMObject(otype="Root", oid="", sClass="", klass="", oattrs={}, children=[])
-    #treeRoot = DOMObjectEmpty
-    currentParent = treeRoot
-    objStack = [currentParent]
-    indent = sys.maxsize
-    for l in iter(text.splitlines()):
-        initLen = len(l) 
-        lStripLine = l.lstrip()
-        lStriplineLen = len(lStripLine) 
-        # if empty line...
-        if (lStriplineLen == 0):
-            continue
-        newIndent = initLen - lStriplineLen
+# #! No errors considered
+# def modelParse(text):
+    # # The init setup is to stack an anchor Obj called 'Root', then set 
+    # # the indent high. Whatever the initial indent, it will be low, so
+    # # the anchor is unstacked and set as the current parent.
+    # treeRoot = DOMObject(otype="Root", oid="", sClass="", klass="", oattrs={}, children=[])
+    # #treeRoot = DOMObjectEmpty
+    # currentParent = treeRoot
+    # objStack = [currentParent]
+    # indent = sys.maxsize
+    # for l in iter(text.splitlines()):
+        # initLen = len(l) 
+        # lStripLine = l.lstrip()
+        # lStriplineLen = len(lStripLine) 
+        # # if empty line...
+        # if (lStriplineLen == 0):
+            # continue
+        # newIndent = initLen - lStriplineLen
 
-        # Parse the object
-        #! change to 'start'
-        ## Text
-        end = lStriplineLen
-        strIdx = lStripLine.find("|")
-        oStr = ""
-        if (strIdx != -1):
-            oStr = lStripLine[strIdx + 1: end]
-            end = strIdx
+        # # Parse the object
+        # #! change to 'start'
+        # ## Text
+        # end = lStriplineLen
+        # strIdx = lStripLine.find("|")
+        # oStr = ""
+        # if (strIdx != -1):
+            # oStr = lStripLine[strIdx + 1: end]
+            # end = strIdx
 
-        ## Class
-        start = lStripLine.find(".")
-        oClass = ""
-        if (start != -1):
-            oClass = lStripLine[start + 1: end]
-            end = start
+        # ## Class
+        # start = lStripLine.find(".")
+        # oClass = ""
+        # if (start != -1):
+            # oClass = lStripLine[start + 1: end]
+            # end = start
             
-        ## Struct class
-        start = lStripLine.find("*")
-        sClass = ""
-        if (start != -1):
-            sClass = lStripLine[start + 1: end]
-            end = start
+        # ## Struct class
+        # start = lStripLine.find("*")
+        # sClass = ""
+        # if (start != -1):
+            # sClass = lStripLine[start + 1: end]
+            # end = start
             
-        ## Id   
-        idIdx = lStripLine.find("#")
-        oId = ""
-        if (idIdx != -1):
-            oId = lStripLine[idIdx + 1: end]
-            end = idIdx
+        # ## Id   
+        # idIdx = lStripLine.find("#")
+        # oId = ""
+        # if (idIdx != -1):
+            # oId = lStripLine[idIdx + 1: end]
+            # end = idIdx
             
-        ## Type
-        oType = lStripLine[:end]
+        # ## Type
+        # oType = lStripLine[:end]
         
-        DObj = DOMObject(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs={}, children=[])
-        # str as an attribute as it niether key nor group?
-        if (oStr):
-          DObj.oattrs["text"] = oStr
+        # DObj = DOMObject(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs={}, children=[])
+        # # str as an attribute as it niether key nor group?
+        # if (oStr):
+          # DObj.oattrs["text"] = oStr
         
-        #print(str(newIndent))
-        #print(str(DObj))
+        # #print(str(newIndent))
+        # #print(str(DObj))
         
-        # Add object to object model, adjusting
-        # parents if necessary
-        ## is Child
-        if (newIndent > indent):
-            objStack.append(currentParent)
-            lastObj = currentParent.children[-1]
-            if (not (lastObj.otype in containerNames)):
-                implicitBox = DOMObject(otype="VBox", oid="", sClass="", klass="", oattrs={}, children=[])
-                currentParent.children.append(implicitBox)
-                lastObj = implicitBox
-            currentParent = lastObj
-            indent = newIndent
+        # # Add object to object model, adjusting
+        # # parents if necessary
+        # ## is Child
+        # if (newIndent > indent):
+            # objStack.append(currentParent)
+            # lastObj = currentParent.children[-1]
+            # if (not (lastObj.otype in containerNames)):
+                # implicitBox = DOMObject(otype="VBox", oid="", sClass="", klass="", oattrs={}, children=[])
+                # currentParent.children.append(implicitBox)
+                # lastObj = implicitBox
+            # currentParent = lastObj
+            # indent = newIndent
             
-        ## revert to parents
-        if (newIndent < indent):
-            currentParent = objStack.pop()
-            indent = newIndent
+        # ## revert to parents
+        # if (newIndent < indent):
+            # currentParent = objStack.pop()
+            # indent = newIndent
             
-        ## else is sibling. Now...
-        currentParent.children.append(DObj)
-    return treeRoot
+        # ## else is sibling. Now...
+        # currentParent.children.append(DObj)
+    # return treeRoot
         
         
 def objectModelppRec(obj, indent):
@@ -212,83 +217,6 @@ def objectModelpp(obj):
 # def treeWalkerTopDown(obj, func):
     # depth = 0
     # treeWalkerTopDownRec(obj, func, depth)
-    
-
-def stylePopulateRec(obj, styleModel):
-    oid = obj.oid
-    if oid in styleModel:
-        obj.oattrs.update( styleModel[oid] )
-    for child in obj.children:
-        stylePopulateRec(child, styleModel)
-        
-def stylePopulate(tree, styleModel):
-    stylePopulateRec(tree, styleModel)
-
-
-def styleParse(styleTxt):
-    # Hash(id -> Hash(attr -> value ...))
-    styleModel = {}
-    for entry in iter(styleTxt.split("}")):
-        lsEntry = entry.lstrip()
-        # if empty line...
-        if (not lsEntry):
-            continue
-            
-        # get oid    
-        valuesIdx = lsEntry.find("{")
-        idIdx = lsEntry.find("#")
-        oId = lsEntry[idIdx + 1:valuesIdx].rstrip()
-        if not oId:
-            warning("failed to parse style identifier", lsEntry)
-            continue
-            
-        # get values
-        attrDict ={}
-
-        start = valuesIdx + 1
-        end = lsEntry.find(";", start)
-        while (end != -1):
-          assoc = lsEntry.find(":", start)
-          key = lsEntry[start : assoc].strip()
-          value = lsEntry[assoc + 1 : end].strip()
-          attrDict[key] = value
-          start = end + 1
-          end = lsEntry.find(";", start)
-        
-        # attrDict = {}
-         
-        # #######################
-        # # parse id
-        # #! cheap solution
-        # oId = parsedStyle[0].split("#")[1].rstrip()
-        # if not oId:
-            # warning("failed to parse style identifier", lsEntry)
-            # continue
-        
-        # #print(str(parsedStyle))
-        # #print(str(oId))
-                
-        # #parse attr dict
-        # attrDict ={}
-        # for attrEntry in parsedStyle[1].split(";"):
-            # sAttrEntry = attrEntry.strip()
-            # if not sAttrEntry:
-                # continue
-            # parsedAttrEntry = sAttrEntry.split(":")
-            # if not len(parsedAttrEntry) == 2:
-                # warning("failed to parse style attributes", sAttrEntry)
-                # continue
-            # attrId = parsedAttrEntry[0].rstrip()
-            # attrValue = parsedAttrEntry[1].lstrip()
-            
-            # attrDict[attrId] = attrValue
-            
-        #NB: appended as the model parses 'text' attribute
-        if not(oId in styleModel):
-            styleModel[oId] = {}
-        styleModel[oId].update(attrDict)
-    #print(styleModel)
-    return styleModel
     
 
 def codeOpen(b):
@@ -444,7 +372,8 @@ def notebookPos(k, v):
 #! convert to funcs
 WidgetAttributeCode = {
   "TopWin" : {
-    "text" : '    gtk_window_set_title(GTK_WINDOW({}), "{}");'
+    "text" : '    gtk_window_set_title(GTK_WINDOW({}), "{}");',
+    "padding": "    gtk_container_set_border_width(GTK_CONTAINER({}), {});"
     },
   "Label" : {
   #? colors
@@ -553,17 +482,15 @@ MAIN
 filename = "main.c"
 b = []
 
-objectModel = modelParse(demoGUIStructure)
+objectModel = Parser.modelParse(demoGUIStructure)
 
 def printObj(obj, depth):
     print(str(depth))
     print(obj.name)
-#OMpp(DOM)
 
-#treeWalkerTopDown(DOM, printObj)
-#stylePopulate(DOM, demoGUIStyle)
-styleModel = styleParse(demoGUIStyle)
-stylePopulate(objectModel, styleModel)
+styleModel = Parser.styleParse(demoGUIStyle)
+print(styleModel)
+Parser.stylePopulate(objectModel, styleModel)
 
 print(str(objectModel))
 objectModelpp(objectModel)
