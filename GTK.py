@@ -1,7 +1,30 @@
 #!/usr/bin/env python3
 
+import Object
 
-GTKWidgetBaseNames = {
+def codeOpen(b):
+    b.append(
+"""#include<gtk/gtk.h>
+
+void buildGUI() {
+  /* Auto generated code. Heedless change generates turmoil */
+""")
+
+def codeClose(b):
+    b.append(
+"""}
+
+int main(int argc, char **argv) {
+  gtk_init(&argc, &argv);
+  /*  gtk_window_set_title(GTK_WINDOW(win), "Hello there"); */
+
+  buildGUI();
+
+  gtk_main();
+}
+""")
+
+WidgetBaseNames = {
   "TopWin": ["win", 0],
   "VBox": ["vbox", 0],
   "HBox": ["hbox", 0],
@@ -15,11 +38,15 @@ GTKWidgetBaseNames = {
   "TextEntry" : ["text_entry", 0],
   "TextArea" : ["text_area", 0],
   "PageBox": ["page_box", 0],
-  #"Page": ["page", 0],
   #"StatusBar": ["statusbar", 0],
   }
 
 
+def newVariableName(oType):
+  data = WidgetBaseNames[oType]
+  name = data[0] + str(data[1])
+  data[1] = data[1] + 1
+  return name
    
    
 #! With the complexities of radiobuttons,
@@ -173,9 +200,9 @@ def widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname):
     statementBuilder.append('    GtkWidget * {} = gtk_label_new ("{}");'.format(labelName, obj.oattrs["text"]))
     statementBuilder.append("    gtk_notebook_append_page (GTK_NOTEBOOK({}), GTK_WIDGET({}), GTK_WIDGET({}));".format(parentVar, varname, labelName))
 
-  else:
+  #else:
     #? else do nothing?
-    warning("'{}#{}' not recognised as a container".format(parentObj.otype, parentObj.oid),"'{}#{}' is unpacked".format(obj.otype, obj.oid))
+    #warning("'{}#{}' not recognised as a container".format(parentObj.otype, parentObj.oid),"'{}#{}' is unpacked".format(obj.otype, obj.oid))
   
         
 def buildCodeRec(obj, b, statementBuilder, parentObj, parentVar):
@@ -191,7 +218,7 @@ def buildCode(objModel):
     # Works naturally from child of objModel
     b = []
     statementBuilder = []
-    buildCodeRec(objModel, b, statementBuilder, DOMObjectEmpty, "")
+    buildCodeRec(objModel, b, statementBuilder, Object.empty, "")
     
     statementBuilder.append("\n")
     statementBuilder.append('    g_signal_connect(win0, "destroy", G_CALLBACK(gtk_main_quit), NULL);')
@@ -201,4 +228,16 @@ def buildCode(objModel):
     b.extend(statementBuilder)
     return b
      
-if __name__ == "__main__":
+
+def render(objectModel):
+  b = []
+  codeOpen(b)
+  codeBuilder = buildCode(objectModel)
+  b.extend(codeBuilder)
+  #print(code)
+  #print(b)
+  codeClose(b)
+  return "\n".join(b)
+  
+  
+#if __name__ == "__main__":

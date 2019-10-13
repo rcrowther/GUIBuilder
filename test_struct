@@ -1,0 +1,9 @@
+  TopWin|Builder Demo
+    VBox
+      PageBox#pages
+        VBox|info
+          Label|trigger
+        VBox|options
+          CheckButton|null force
+          CheckButton|zero force
+      Button|Open

@@ -3,27 +3,7 @@
 import collections
 import sys
 import Reporter
-
-WidgetTypes = {
-  "TopWin",
-  "VBox",
-  "HBox",
-  "Label",
-  "Button",
-  "IconButton",  
-  "EmptyButton",
-  "RadioButton" ,
-  "CheckButton" ,
-  "SelectEntry" ,
-  "TextEntry" ,
-  "TextArea" ,
-  "PageBox",
-  #"StatusBar",
-  }
-  
-  
-DOMObject = collections.namedtuple('DOMObject', 'otype oid sClass klass oattrs children')
-DOMObjectEmpty = DOMObject(otype="Empty", oid="none", sClass="none", klass="none", oattrs={}, children=[])
+import Object
 
 
 # for detection of implicit boxes
@@ -76,7 +56,7 @@ def modelLineParse(lineLen, line):
     ## Type
     oType = line[:end]
     
-    DObj = DOMObject(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs={}, children=[])
+    DObj = Object.new(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs={}, children=[])
     # str as an attribute as it niether key nor group?
     if (oStr):
       DObj.oattrs["text"] = oStr
@@ -87,7 +67,7 @@ def modelParse(text):
     # The init setup is to stack an anchor Obj called 'Root', then set 
     # the indent high. Whatever the initial indent, it will be lower, so
     # the anchor is unstacked and set as the current parent.
-    treeRoot = DOMObject(otype="Root", oid="", sClass="", klass="", oattrs={}, children=[])
+    treeRoot = Object.new(otype="Root", oid="", sClass="", klass="", oattrs={}, children=[])
     currentParent = treeRoot
     objStack = [StackItem(-99, currentParent)]
     indent = sys.maxsize
@@ -112,7 +92,7 @@ def modelParse(text):
             objStack.append(StackItem(indent, currentParent))
             lastObj = currentParent.children[-1]
             if (not (lastObj.otype in containerNames)):
-                implicitBox = DOMObject(otype="VBox", oid="", sClass="", klass="", oattrs={}, children=[])
+                implicitBox = Object.new(otype="VBox", oid="", sClass="", klass="", oattrs={}, children=[])
                 currentParent.children.append(implicitBox)
                 lastObj = implicitBox
             currentParent = lastObj
@@ -158,7 +138,7 @@ def modelParseLint(text):
 
     # Also covers accidental appeareence of 'Root'
     oType = obj.otype
-    if (oType and not(oType in WidgetTypes)):
+    if (oType and not(oType in Object.WidgetTypes)):
        Reporter.error(
          lineNum,
          "Selector type failed to match a known type",
@@ -253,7 +233,7 @@ def styleSelectorLint(text, start, end):
       "declaration will be ignored",
       '"{}"'.format(text)
       )
-  if (selector.oType and(not selector.oType in WidgetTypes)):
+  if (selector.oType and(not selector.oType in Object.WidgetTypes)):
     lineNum = Reporter.getLineNum(text, start)
     Reporter.warning(
       lineNum,
@@ -405,24 +385,12 @@ def lint(modelText, styleText):
   modelParseLint(modelText)
   styleLint(styleText)
   #! should only continue if not overwhelmed by errors
-  objectModel = Parser.modelParse(demoGUIStructure)
-  styleModel = Parser.styleParse(demoGUIStyle)
+  objectModel = modelParse(modelText)
+  styleModel = styleParse(styleText)
   stylePopulate(objectModel, styleModel)
   modelLint(objectModel)
 
         
-def prettyPrintRec(obj, indent):
-    if (obj.oid):
-        print("{}{} {{id:{}}}".format(indent, obj.otype, obj.oid))
-    if (not obj.oid):        
-        print("{}{}".format(indent, obj.otype))
-    for child in obj.children:
-        prettyPrintRec(child, indent + "  ")
-        
-def prettyPrint(obj):
-    indent = ""
-    prettyPrintRec(obj, indent)
-
 
   
 ## Tests
