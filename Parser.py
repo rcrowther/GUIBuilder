@@ -40,12 +40,14 @@ WidgetTypes = {
   "VBox",
   "HBox",
   "Label",
+  "Button",
+  "IconButton",  
+  "EmptyButton",
   "RadioButton" ,
   "CheckButton" ,
   "SelectEntry" ,
   "TextEntry" ,
   "TextArea" ,
-  "LabelButton",
   "PageBox",
   #"StatusBar",
   }
@@ -66,17 +68,20 @@ containerNames = [
   
 
 #! No errors considered
+StackItem = collections.namedtuple('StackItem', 'indent obj')
+StackItemEmpty = StackItem(0, None)
+
 def modelParse(text):
     # The init setup is to stack an anchor Obj called 'Root', then set 
-    # the indent high. Whatever the initial indent, it will be low, so
+    # the indent high. Whatever the initial indent, it will be lower, so
     # the anchor is unstacked and set as the current parent.
     treeRoot = DOMObject(otype="Root", oid="", sClass="", klass="", oattrs={}, children=[])
     currentParent = treeRoot
-    objStack = [currentParent]
+    objStack = [StackItem(-99, currentParent)]
     indent = sys.maxsize
     for l in iter(text.splitlines()):
         initLen = len(l) 
-        lStripLine = l.lstrip()
+        lStripLine = l.strip()
         lStriplineLen = len(lStripLine) 
         # if empty line...
         if (lStriplineLen == 0):
@@ -87,11 +92,11 @@ def modelParse(text):
         #! change to 'start'
         ## Text
         end = lStriplineLen
-        strIdx = lStripLine.find("|")
+        start = lStripLine.find("|")
         oStr = ""
-        if (strIdx != -1):
-            oStr = lStripLine[strIdx + 1: end]
-            end = strIdx
+        if (start != -1):
+            oStr = lStripLine[start + 1: end]
+            end = start
 
         ## Class
         start = lStripLine.find(".")
@@ -108,11 +113,11 @@ def modelParse(text):
             end = start
             
         ## Id   
-        idIdx = lStripLine.find("#")
+        start = lStripLine.find("#")
         oId = ""
-        if (idIdx != -1):
-            oId = lStripLine[idIdx + 1: end]
-            end = idIdx
+        if (start != -1):
+            oId = lStripLine[start + 1: end]
+            end = start
             
         ## Type
         oType = lStripLine[:end]
@@ -129,7 +134,7 @@ def modelParse(text):
         # parents if necessary
         ## is Child
         if (newIndent > indent):
-            objStack.append(currentParent)
+            objStack.append(StackItem(indent, currentParent))
             lastObj = currentParent.children[-1]
             if (not (lastObj.otype in containerNames)):
                 implicitBox = DOMObject(otype="VBox", oid="", sClass="", klass="", oattrs={}, children=[])
@@ -140,16 +145,59 @@ def modelParse(text):
             
         ## revert to parents
         if (newIndent < indent):
-            currentParent = objStack.pop()
-            indent = newIndent
+          oldParent = StackItemEmpty
+          print(str(objStack))
+          while(True):
+            oldParent = objStack.pop()
+            if (oldParent.indent <= newIndent):
+              break
+          currentParent = oldParent.obj
+          indent = newIndent
             
         ## else is sibling. Now...
         currentParent.children.append(DObj)
     return treeRoot
 
+#! Two linters, one on src, one on model
+def modelLint(objModel):
+  idStash = []
+  for idx, obj in enumerate(objModel.enum):
+    lineNum = idx + 1
+    
+    # unidentified rype
+    if (not obj.otype):
+      error(
+        lineNum,
+        "No selector type",
+        "values will be ignored, structure disrupted",
+        '"{}"'.format(text)
+        )         
 
-
-
+    if (obj.oType in WidgetTypes):
+       error(
+         lineNum,
+         "Selector type failed to match a known type",
+         "values will case a compile error",
+      '  "{}"'.format(text)
+         )      
+      
+    #  duplicate id
+    oid = obj.oid
+    if (oId in idStash):
+          #lineNum = getLineNum(text, aOpen)
+          #line = getLine(text, aOpen)
+          error(
+            lineNum,
+            "Id used twice",
+            "styles will prprobably be applied to second instance, but undefined",
+            '{}'.format(oId)
+            )
+    idStash.append(oId)
+# - one root
+# - text objects have text
+# - radios have osClass        
+        
+            
 # Style parser
 StyleSelector = collections.namedtuple('StyleSelector', 'oType oId oClass')
     
@@ -341,7 +389,13 @@ if __name__ == "__main__":
   line = getLine("""True, but not\nIn all fairness,\na novelty.""", 32)
   print('Line:{}, "{}"'.format(num, line))
   
-
+  testHeader("ModelParse")
+  o = modelParse("""  VBox#support.warning  """)
+  print(str(o))
+  # over-indexed
+  #o = modelParse("""  #support  """, 0, 22)
+  #print(str(o))
+  
   testHeader("Style Selector")
   o = styleSelectorParse("""  VBox#support.warning  """, 2, 22)
   print(str(o))

@@ -6,6 +6,7 @@ import sys
 
 import Parser
 
+#! implicits == bad idea
 #! robuster parsers
 #! Convert attrs to funcs
 #! working markup a challenge
@@ -15,11 +16,7 @@ import Parser
 #! PrettyPrint as original form?
 #! Spacing padding borders...
 #! linter
-# - one root
-# - well formed data 
-# - text objects have text
-# - radios have osClass
-# - obj types exist
+
 
 DOMObject = collections.namedtuple('DOMObject', 'otype oid sClass klass oattrs children')
 DOMObjectEmpty = DOMObject(otype="Empty", oid="none", sClass="none", klass="none", oattrs={}, children=[])
@@ -48,7 +45,7 @@ WindowMain#win
     DropBox#dropArea
       Icon#dropicon
       TextBox#dropInstructions
-      LabelButton#sendButton
+      Button#sendButton
     StatusBar
       TextBox#status
 "
@@ -61,7 +58,7 @@ VBox#container
   DropBox#dropArea
     Icon#dropicon
     TextBox#dropInstructions
-    LabelButton#sendButton
+    Button#sendButton
   StatusBar
     TextBox#status
 """
@@ -69,7 +66,7 @@ VBox#container
 TopWin|Builder Demo
     VBox#container
         Label.warning|example label
-        LabelButton#sendButton|Sad Cafe
+        Button#sendButton|Sad Cafe
         TextEntry
         TextArea
         SelectEntry
@@ -81,13 +78,14 @@ TopWin|Builder Demo
 
 demoGUIStructure = """
   TopWin|Builder Demo
-    PageBox#pages
-      VBox|info
-        Label|trigger
-      VBox|options
-        CheckButton|null force
-        CheckButton|zero force
-
+    VBox
+      PageBox#pages
+        VBox|info
+          Label|trigger
+        VBox|options
+          CheckButton|null force
+          CheckButton|zero force
+      Button|Open
 """
 
 demoGUIStyle = """
@@ -258,12 +256,14 @@ GTKWidgetBaseNames = {
   "VBox": ["vbox", 0],
   "HBox": ["hbox", 0],
   "Label": ["label", 0],
-  "RadioButton" : ["radio_btn", 0],
+  "Button" : ["btn", 0],
+  "IconButton" : ["icon_btn", 0],
+  "EmptyButton" : ["empty_btn", 0],
   "CheckButton" : ["check_btn", 0],
+  "RadioButton" : ["radio_btn", 0],
   "SelectEntry" : ["select_entry", 0],
   "TextEntry" : ["text_entry", 0],
   "TextArea" : ["text_area", 0],
-  "LabelButton": ["label_btn", 0],
   "PageBox": ["page_box", 0],
   #"Page": ["page", 0],
   #"StatusBar": ["statusbar", 0],
@@ -290,14 +290,13 @@ def HBox(b, obj, varname):
   b.append('    {} = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);'.format(varname))
 def Label(b, obj, varname):
   b.append('    {} = gtk_label_new ("{}");'.format(varname, obj.oattrs["text"]))
-def TextEntry(b, obj, varname):
-  b.append('    {} = gtk_entry_new ();'.format(varname))
-def TextArea(b, obj, varname):
-  b.append('    {} = gtk_text_view_new ();'.format(varname))
-def SelectEntry(b, obj, varname):
-  b.append('    {} = gtk_combo_box_new ();'.format(varname))
-def LabelButton(b, obj, varname):
+
+def Button(b, obj, varname):
   b.append('    {} = gtk_button_new_with_label ("{}");'.format(varname, obj.oattrs["text"]))
+def IconButton(b, obj, varname):
+  b.append('    {} = gtk_button_new ();'.format(varname))
+def EmptyButton(b, obj, varname):
+  b.append('    {} = gtk_button_new ();'.format(varname))
 def RadioButton(b, obj, varname):
   b.append('    {} = gtk_radio_button_new_with_label (NULL, "{}");'.format(varname, obj.oattrs["text"]))
   groupName = obj.sClass
@@ -310,6 +309,13 @@ def RadioButton(b, obj, varname):
 def CheckButton(b, obj, varname):
   b.append('    {} = gtk_check_button_new_with_label ("{}");'.format(varname, obj.oattrs["text"]))
 
+def TextEntry(b, obj, varname):
+  b.append('    {} = gtk_entry_new ();'.format(varname))
+def TextArea(b, obj, varname):
+  b.append('    {} = gtk_text_view_new ();'.format(varname))
+def SelectEntry(b, obj, varname):
+  b.append('    {} = gtk_combo_box_new ();'.format(varname))
+  
 def PageBox(b, obj, varname):
   b.append('    {} = gtk_notebook_new ();'.format(varname))
 
@@ -329,7 +335,9 @@ WidgetCreate = {
   "TextEntry" : TextEntry,
   "TextArea" : TextArea,
   "SelectEntry" : SelectEntry,
-  "LabelButton": LabelButton,
+  "Button": Button,
+  "IconButton": IconButton,
+  "EmptyButton": EmptyButton,
   "RadioButton": RadioButton,
   "CheckButton": CheckButton,
   "PageBox" : PageBox,
@@ -342,7 +350,7 @@ WidgetCreate = {
 # ObjCreatedWithText = [
   # #"TextArea",
   # "Label",
-  # "LabelButton",
+  # "Button",
   # "RadioButton",
   # "CheckButton",
   # ]
@@ -350,7 +358,8 @@ WidgetCreate = {
 GTKContainers = [
   #NB dont pack topwin :)
   "TopWin",
-  #"LabelButton",
+  "EmptyButton",
+  #"PageBox",
   ]
 
 
@@ -389,14 +398,14 @@ WidgetAttributeCode = {
   "TextArea" : {
     #! No, not that simple, its a buffer
     },  
-  "LabelButton" : {
+  "Button" : {
 #? colors
         },
   "CheckButton" : {
         },  
   "PageBox" : {
     #"pos": notebookPos,
-    "pos": "gtk_notebook_set_tab_pos(GTK_NOTEBOOK({}), GTK_POS_LEFT);"
+    "pos": "    gtk_notebook_set_tab_pos(GTK_NOTEBOOK({}), GTK_POS_LEFT);"
         },
 }
 
@@ -457,24 +466,7 @@ def buildCode(objModel):
     b.extend(statementBuilder)
     return b
         
-def write(b):
-    #if (obj.otype == "Box"):
-        
-    b.append(
-"""
-    void buildGUI(GtkWidget *win) {
-      GtkWidget *vbox;
-      GtkWidget *settings;
-      
-  vbox = gtk_box_new(TRUE, 1);
-  gtk_container_add(GTK_CONTAINER(win), vbox);
-   // GtkWidget *btn = gtk_button_new_with_label("Click Me!");
- // gtk_container_add(GTK_CONTAINER(halign), button);
-  settings = gtk_button_new_with_label("Settings");
-  gtk_box_pack_start(GTK_BOX(vbox), settings, TRUE, TRUE, 0);
-      }
-"""
-)
+
 
 """
 MAIN
