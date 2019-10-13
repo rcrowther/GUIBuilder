@@ -52,6 +52,7 @@ WidgetTypes = {
   #"StatusBar",
   }
   
+  
 DOMObject = collections.namedtuple('DOMObject', 'otype oid sClass klass oattrs children')
 DOMObjectEmpty = DOMObject(otype="Empty", oid="none", sClass="none", klass="none", oattrs={}, children=[])
 
@@ -71,6 +72,48 @@ containerNames = [
 StackItem = collections.namedtuple('StackItem', 'indent obj')
 StackItemEmpty = StackItem(0, None)
 
+def parseModelLine(lineLen, line):
+    # Parse an object definition
+    # whitespace shoul be previously stripped
+    ## Text
+    end = lineLen
+    start = line.find("|")
+    oStr = ""
+    if (start != -1):
+        oStr = line[start + 1: end]
+        end = start
+    
+    ## Class
+    start = line.find(".")
+    oClass = ""
+    if (start != -1):
+        oClass = line[start + 1: end]
+        end = start
+        
+    ## Struct class
+    start = line.find("*")
+    sClass = ""
+    if (start != -1):
+        sClass = line[start + 1: end]
+        end = start
+        
+    ## Id   
+    start = line.find("#")
+    oId = ""
+    if (start != -1):
+        oId = line[start + 1: end]
+        end = start
+        
+    ## Type
+    oType = line[:end]
+    
+    DObj = DOMObject(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs={}, children=[])
+    # str as an attribute as it niether key nor group?
+    if (oStr):
+      DObj.oattrs["text"] = oStr
+    return DObj
+    
+            
 def modelParse(text):
     # The init setup is to stack an anchor Obj called 'Root', then set 
     # the indent high. Whatever the initial indent, it will be lower, so
@@ -88,45 +131,8 @@ def modelParse(text):
             continue
         newIndent = initLen - lStriplineLen
 
-        # Parse the object
-        #! change to 'start'
-        ## Text
-        end = lStriplineLen
-        start = lStripLine.find("|")
-        oStr = ""
-        if (start != -1):
-            oStr = lStripLine[start + 1: end]
-            end = start
+        DObj = parseModelLine(lStriplineLen, lStripLine)
 
-        ## Class
-        start = lStripLine.find(".")
-        oClass = ""
-        if (start != -1):
-            oClass = lStripLine[start + 1: end]
-            end = start
-            
-        ## Struct class
-        start = lStripLine.find("*")
-        sClass = ""
-        if (start != -1):
-            sClass = lStripLine[start + 1: end]
-            end = start
-            
-        ## Id   
-        start = lStripLine.find("#")
-        oId = ""
-        if (start != -1):
-            oId = lStripLine[start + 1: end]
-            end = start
-            
-        ## Type
-        oType = lStripLine[:end]
-        
-        DObj = DOMObject(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs={}, children=[])
-        # str as an attribute as it niether key nor group?
-        if (oStr):
-          DObj.oattrs["text"] = oStr
-        
         #print(str(newIndent))
         #print(str(DObj))
         
@@ -158,46 +164,88 @@ def modelParse(text):
         currentParent.children.append(DObj)
     return treeRoot
 
-#! Two linters, one on src, one on model
-def modelLint(objModel):
-  idStash = []
-  for idx, obj in enumerate(objModel.enum):
-    lineNum = idx + 1
-    
-    # unidentified rype
-    if (not obj.otype):
-      error(
-        lineNum,
-        "No selector type",
-        "values will be ignored, structure disrupted",
-        '"{}"'.format(text)
-        )         
 
-    if (obj.oType in WidgetTypes):
+#! Two linters, one on src, one on model
+def modelParseLint(text):
+  # Assume no interest in indenting
+  idStash = []
+  for idx, l in enumerate(iter(text.splitlines())):
+    lineNum = idx + 1
+    lStripLine = l.strip()
+    lStriplineLen = len(lStripLine) 
+    # if empty line...
+    if (lStriplineLen == 0):
+      continue
+
+    obj = parseModelLine(lStriplineLen, lStripLine)
+    print(obj)
+    # unidentified type
+    # if (not obj.otype):
+      # error(
+        # lineNum,
+        # "No selector type",
+        # "values will be ignored, structure disrupted",
+        # '"{}"'.format(l)
+        # )         
+
+    # Also covers accidental appeareence of 'Root'
+    oType = obj.otype
+    if (oType and not(oType in WidgetTypes)):
        error(
          lineNum,
          "Selector type failed to match a known type",
          "values will case a compile error",
-      '  "{}"'.format(text)
+      '  "{}"'.format(oType)
          )      
       
     #  duplicate id
-    oid = obj.oid
-    if (oId in idStash):
-          #lineNum = getLineNum(text, aOpen)
-          #line = getLine(text, aOpen)
+    oId = obj.oid
+    if (oId):
+      if (oId in idStash):
           error(
             lineNum,
             "Id used twice",
-            "styles will prprobably be applied to second instance, but undefined",
-            '{}'.format(oId)
+            "styles will probably be applied to second instance, but undefined",
+            '"{}"'.format(oId)
             )
-    idStash.append(oId)
-# - one root
-# - text objects have text
-# - radios have osClass        
-        
-            
+      idStash.append(oId)
+
+
+TextObjects = {
+  "Button",
+  "RadioButton" ,
+  "CheckButton" ,
+  "SelectEntry" ,
+  }
+  
+def modelLintRec(children):
+  for obj in children:
+    # text objects have/need text
+    oType  = obj.otype
+    if (oType in TextObjects and (not("text" in obj.oattrs ))):
+      error(
+        "Unknown",
+        "This object needs text for definition",
+        "other objects may take optional text, these need text",
+        '{}'.format(obj)
+        )
+    # radios have osClass for grouping
+    if (oType == "RadioButton" and  (not obj.sClass)):
+      error(
+        "Unknown",
+        "RadioButton needs a structure class for definition",
+        "GUI will not function",
+        '{}'.format(obj)
+        )
+    modelLintRec(obj.children)
+  
+def modelLint(objModel):
+  # Some checks on data consistency
+  # To be run *after* style population
+  modelLintRec(objModel.children)
+
+
+
 # Style parser
 StyleSelector = collections.namedtuple('StyleSelector', 'oType oId oClass')
     
@@ -229,7 +277,7 @@ def styleSelectorLint(text, start, end):
     warning(
       lineNum,
       "failed to parse a style selector",
-      "values will be ignored",
+      "declaration will be ignored",
       '"{}"'.format(text)
       )
   if (selector.oType and(not selector.oType in WidgetTypes)):
@@ -237,7 +285,7 @@ def styleSelectorLint(text, start, end):
     warning(
       lineNum,
       "Selector type failed to match a known type",
-      "values will be ignored",
+      "declaration will be ignored",
       '"{}"'.format(text)
       )
 
@@ -379,6 +427,18 @@ def stylePopulateRec(obj, styleModel):
 def stylePopulate(objectModel, styleModel):
     stylePopulateRec(objectModel, styleModel)
 
+
+def lint(modelText, styleText):
+  modelParseLint(modelText)
+  styleLint(styleText)
+  #! should only continue if not overwhelmed by errors
+  objectModel = Parser.modelParse(demoGUIStructure)
+  styleModel = Parser.styleParse(demoGUIStyle)
+  stylePopulate(objectModel, styleModel)
+  modelLint(objectModel)
+
+
+  
 ## Tests
 def testHeader(title):
     print("\n{}== {}{}".format(STRUCT, title, RESET))
@@ -389,12 +449,26 @@ if __name__ == "__main__":
   line = getLine("""True, but not\nIn all fairness,\na novelty.""", 32)
   print('Line:{}, "{}"'.format(num, line))
   
+  
   testHeader("ModelParse")
   o = modelParse("""  VBox#support.warning  """)
   print(str(o))
   # over-indexed
   #o = modelParse("""  #support  """, 0, 22)
   #print(str(o))
+  
+  modelParseLint("VBox\n  Button|Go\n  Button|Stop ")
+  # undefined type
+  modelParseLint("VBox\n  Button|Go\n  ColourSelect|Stop ")
+  # duplicate ids  
+  modelParseLint("VBox#truth\n  Button|Go\n  Button#truth|Stop ")
+  
+  
+  modelLint(modelParse("""  VBox#support.warning  """))
+  # text objects
+  modelLint(modelParse("""  Button|Open\n  Button\n  """))
+  # Radio button group
+  modelLint(modelParse("""  RadioButton*dir|Left\n  RadioButton^dir|Top\n  RadioButton|Bottom\n  """))
   
   testHeader("Style Selector")
   o = styleSelectorParse("""  VBox#support.warning  """, 2, 22)
