@@ -2,39 +2,8 @@
 
 import collections
 import sys
+import Reporter
 
-
-#! Generally, no errors, need linter
-#red
-ERROR= '\033[91m'
-# yellow
-#WARNING= "\033[93m"
-WARNING= "\033[33m"
-# geeen
-INFO= '\033[32m'
-#blue
-STRUCT= '\033[34m'
-RESET= "\033[0m"
-
-def warning(lineNum, msg, advice, data):
-    print("{}[Warning]{} Line: {}; {}".format(WARNING, RESET, lineNum, msg))
-    print("    ({}):".format(advice))
-    print("    {}".format(data))
-
-def error(lineNum, msg, advice, data):
-    print("{}[Error]{} Line: {}; {}".format(ERROR, RESET, lineNum, msg))
-    print("    ({}):".format(advice))
-    print("    {}".format(data))
-
-def getLineNum(text, pos):
-  return text.count("\n", 0, pos) + 1
-
-def getLine(text, pos):
-  # Drops last char in file, but otherwise ok.
-  start = text.rfind("\n", 0, pos)
-  end = text.find("\n", pos)
-  return text[start + 1: end]
-        
 WidgetTypes = {
   "TopWin",
   "VBox",
@@ -72,7 +41,7 @@ containerNames = [
 StackItem = collections.namedtuple('StackItem', 'indent obj')
 StackItemEmpty = StackItem(0, None)
 
-def parseModelLine(lineLen, line):
+def modelLineParse(lineLen, line):
     # Parse an object definition
     # whitespace shoul be previously stripped
     ## Text
@@ -131,7 +100,7 @@ def modelParse(text):
             continue
         newIndent = initLen - lStriplineLen
 
-        DObj = parseModelLine(lStriplineLen, lStripLine)
+        DObj = modelLineParse(lStriplineLen, lStripLine)
 
         #print(str(newIndent))
         #print(str(DObj))
@@ -152,7 +121,6 @@ def modelParse(text):
         ## revert to parents
         if (newIndent < indent):
           oldParent = StackItemEmpty
-          print(str(objStack))
           while(True):
             oldParent = objStack.pop()
             if (oldParent.indent <= newIndent):
@@ -177,8 +145,8 @@ def modelParseLint(text):
     if (lStriplineLen == 0):
       continue
 
-    obj = parseModelLine(lStriplineLen, lStripLine)
-    print(obj)
+    obj = modelLineParse(lStriplineLen, lStripLine)
+    #print(obj)
     # unidentified type
     # if (not obj.otype):
       # error(
@@ -191,7 +159,7 @@ def modelParseLint(text):
     # Also covers accidental appeareence of 'Root'
     oType = obj.otype
     if (oType and not(oType in WidgetTypes)):
-       error(
+       Reporter.error(
          lineNum,
          "Selector type failed to match a known type",
          "values will case a compile error",
@@ -202,7 +170,7 @@ def modelParseLint(text):
     oId = obj.oid
     if (oId):
       if (oId in idStash):
-          error(
+          Reporter.error(
             lineNum,
             "Id used twice",
             "styles will probably be applied to second instance, but undefined",
@@ -211,6 +179,11 @@ def modelParseLint(text):
       idStash.append(oId)
 
 
+# For linting
+#? warnnings about
+# "TextArea",
+# "Label",
+# or annoying
 TextObjects = {
   "Button",
   "RadioButton" ,
@@ -223,7 +196,7 @@ def modelLintRec(children):
     # text objects have/need text
     oType  = obj.otype
     if (oType in TextObjects and (not("text" in obj.oattrs ))):
-      error(
+      Reporter.error(
         "Unknown",
         "This object needs text for definition",
         "other objects may take optional text, these need text",
@@ -231,7 +204,7 @@ def modelLintRec(children):
         )
     # radios have osClass for grouping
     if (oType == "RadioButton" and  (not obj.sClass)):
-      error(
+      Reporter.error(
         "Unknown",
         "RadioButton needs a structure class for definition",
         "GUI will not function",
@@ -273,16 +246,16 @@ def styleSelectorParse(text, start, end):
 def styleSelectorLint(text, start, end):
   selector = styleSelectorParse(text, start, end)
   if (not (selector.oType or selector.oId or selector.oClass)):
-    lineNum = getLineNum(text, start)
-    warning(
+    lineNum = Reporter.getLineNum(text, start)
+    Reporter.warning(
       lineNum,
       "failed to parse a style selector",
       "declaration will be ignored",
       '"{}"'.format(text)
       )
   if (selector.oType and(not selector.oType in WidgetTypes)):
-    lineNum = getLineNum(text, start)
-    warning(
+    lineNum = Reporter.getLineNum(text, start)
+    Reporter.warning(
       lineNum,
       "Selector type failed to match a known type",
       "declaration will be ignored",
@@ -310,8 +283,8 @@ def styleAttributesLint(text, start, end):
   oAttrs = styleAttributesParse(text, start, end)
   for k,v in oAttrs.items():
     if (v.find(":") != -1):
-      lineNum = getLineNum(text, start)
-      warning(
+      lineNum = Reporter.getLineNum(text, start)
+      Reporter.warning(
         lineNum,
         "colon found in a value",
         "maybe a missing semi-colon?",
@@ -361,18 +334,18 @@ def styleLint(text):
   # EOF case
   if (not(aClose == -1 and aOpen == -1)):
       if (aClose == -1):
-          lineNum = getLineNum(text, aOpen)
-          line = getLine(text, aOpen)
-          warning(
+          lineNum = Reporter.getLineNum(text, aOpen)
+          line = Reporter.getLine(text, aOpen)
+          Reporter.warning(
             lineNum,
             "missing close bracket",
             "following definitions will be unused",
             '{}'.format(line)
             )
       if (aOpen == -1 or (aClose != -1 and aClose < aOpen)):
-          lineNum = getLineNum(text, aClose)
-          line = getLine(text, aClose)
-          warning(
+          lineNum = Reporter.getLineNum(text, aClose)
+          line = Reporter.getLine(text, aClose)
+          Reporter.warning(
             lineNum,
             "missing open bracket",
             "preceeding definitions will be unused",
@@ -391,9 +364,9 @@ def styleLint(text):
     # EOF case
     if (not(aClose == -1 and aOpen == -1)):
         if (aClose == -1):
-          lineNum = getLineNum(text, aOpen)
-          line = getLine(text, aOpen)
-          warning(
+          lineNum = Reporter.getLineNum(text, aOpen)
+          line = Reporter.getLine(text, aOpen)
+          Reporter.warning(
             lineNum,
             "missing close bracket",
             "following definitions will be unused",
@@ -401,9 +374,9 @@ def styleLint(text):
             )
     
         if (aOpen == -1 or (aClose != -1 and aClose < aOpen)):
-          lineNum = getLineNum(text, aClose)
-          line = getLine(text, aClose)
-          warning(
+          lineNum = Reporter.getLineNum(text, aClose)
+          line = Reporter.getLine(text, aClose)
+          Reporter.warning(
             lineNum,
             "missing sopen bracket",
             "preceeding definitions will be unused",
@@ -437,20 +410,25 @@ def lint(modelText, styleText):
   stylePopulate(objectModel, styleModel)
   modelLint(objectModel)
 
+        
+def prettyPrintRec(obj, indent):
+    if (obj.oid):
+        print("{}{} {{id:{}}}".format(indent, obj.otype, obj.oid))
+    if (not obj.oid):        
+        print("{}{}".format(indent, obj.otype))
+    for child in obj.children:
+        prettyPrintRec(child, indent + "  ")
+        
+def prettyPrint(obj):
+    indent = ""
+    prettyPrintRec(obj, indent)
+
 
   
 ## Tests
-def testHeader(title):
-    print("\n{}== {}{}".format(STRUCT, title, RESET))
-    
 if __name__ == "__main__":
-  testHeader("Error Code")
-  num = getLineNum("""True, but not\nIn all fairness,\na novelty.""", 32)
-  line = getLine("""True, but not\nIn all fairness,\na novelty.""", 32)
-  print('Line:{}, "{}"'.format(num, line))
-  
-  
-  testHeader("ModelParse")
+    
+  Reporter.testHeader("ModelParse")
   o = modelParse("""  VBox#support.warning  """)
   print(str(o))
   # over-indexed
@@ -470,7 +448,7 @@ if __name__ == "__main__":
   # Radio button group
   modelLint(modelParse("""  RadioButton*dir|Left\n  RadioButton^dir|Top\n  RadioButton|Bottom\n  """))
   
-  testHeader("Style Selector")
+  Reporter.testHeader("Style Selector")
   o = styleSelectorParse("""  VBox#support.warning  """, 2, 22)
   print(str(o))
   # over-indexed
@@ -483,7 +461,7 @@ if __name__ == "__main__":
   styleSelectorLint("""  ColorWheel  """, 0, 22)
   
 
-  testHeader("Style Attrs")
+  Reporter.testHeader("Style Attrs")
   o = styleAttributesParse(""" a{color:blue; text:"/url";}  """, 3, 27)
   print(str(o))
   # missing assoc
@@ -497,17 +475,17 @@ if __name__ == "__main__":
   print(str(o))
 
 
-  testHeader("Attrs Lint")
+  Reporter.testHeader("Attrs Lint")
   # Non-existing type
   styleAttributesLint(""" a{color: blue text:"/url";}  """, 3, 27)
 
 
-  testHeader("Style Parse")
+  Reporter.testHeader("Style Parse")
   o = styleParse(""" VBox{color:blue;}  #linkLabel{text:"/url";}  """)
   print(str(o))
 
 
-  testHeader("Style Lint")
+  Reporter.testHeader("Style Lint")
   styleLint(""" VBox{color:green;} \n#linkLabel{text:"/url";}  """)
   styleLint(""" HBox{color:green;}  \n#aboutlinks text:"/url"}  """)
   styleLint(""" CheckButton{}  """)

@@ -1,163 +1,6 @@
 #!/usr/bin/env python3
 
-import os
-import collections
-import sys
 
-import ObjectModel
-
-#! implicits == bad idea
-#! robuster parsers
-#! Convert attrs to funcs
-#! working markup a challenge
-#! make into callable module
-#! Selector box definitions?
-#! external wiring?
-#! PrettyPrint as original form?
-#! Spacing padding borders...
-#! linter
-
-
-DOMObject = collections.namedtuple('DOMObject', 'otype oid sClass klass oattrs children')
-DOMObjectEmpty = DOMObject(otype="Empty", oid="none", sClass="none", klass="none", oattrs={}, children=[])
-
-
-#! Generally, no errors, need linter
-#! get rid
-ERROR= '\033[91m'
-#WARNING= "\033[93m"
-WARNING= "\033[33m"
-INFO= '\033[32m'
-RESET= "\033[0m"
-
-def warning(msg, data):
-    print("{}[Warning]{} {}:".format(WARNING, RESET, msg))
-    print("    {}".format(data))
-
-def error(msg, data):
-    print("{}[Error]{} {}:".format(ERROR, RESET, msg))
-    print("    {}".format(data))
-
-
-""" 
-gui.structure(""
-WindowMain#win
-  VBox#container
-    TextList#fileList
-    DropBox#dropArea
-      Icon#dropicon
-      TextBox#dropInstructions
-      Button#sendButton
-    StatusBar
-      TextBox#status
-"
-)
-"""
-"""
-demoGUIStructure = 
-VBox#container
-  TextList#fileList
-  DropBox#dropArea
-    Icon#dropicon
-    TextBox#dropInstructions
-    Button#sendButton
-  StatusBar
-    TextBox#status
-"""
-"""
-TopWin|Builder Demo
-    VBox#container
-        Label.warning|example label
-        Button#sendButton|Sad Cafe
-        TextEntry
-        TextArea
-        SelectEntry
-        CheckButton|Default Encoding
-        RadioButton*group1|Left
-        RadioButton*group1|Right
-        RadioButton*group1|Offboard
-"""
-
-demoGUIStructure = """
-  TopWin|Builder Demo
-    VBox
-      PageBox#pages
-        VBox|info
-          Label|trigger
-        VBox|options
-          CheckButton|null force
-          CheckButton|zero force
-      Button|Open
-"""
-
-demoGUIStyle = """
-    #win {text: ""PhotoEmailer"}
-    TopWin {padding: 30;}
-    #dropArea {type: images}
-    #dropicon {url:""/nice/image/icon.png"}
-    #dropInstructions { text: ""choose a photo or add it here"}
-    #container {background-color: light-blue; padding: 30;}
-    #pages {pos: left;}
-    #fileList {h: expand; v: shrink; }
-    #dropArea {h: expand; max-height: 20%; font-size:large; font-weight:bold; }
-    #sendButton {font-size: large; background-color: mid-blue; color: white;}
-"""
-
-# for detection of implicit boxes
-containerNames = [
-  "TopWin",
-  "VBox", 
-  "HBox",
-  "PageBox", 
-  #"StatusBar", 
-  "DropBox"
-  ]
-
-
-# def treeWalkerTopDownRec(obj, func, depth):
-    # func(obj, depth)
-    # for child in obj.children:
-        # treeWalkerTopDownRec(child, func, depth + 1)
-        
-# def treeWalkerTopDown(obj, func):
-    # depth = 0
-    # treeWalkerTopDownRec(obj, func, depth)
-    
-
-def codeOpen(b):
-    b.append(
-"""#include<gtk/gtk.h>
-
-void buildGUI() {
-  /* Auto generated code. Heedless change generates turmoil */
-""")
-
-def codeClose(b):
-    b.append(
-"""}
-
-int main(int argc, char **argv) {
-  gtk_init(&argc, &argv);
-  /*  gtk_window_set_title(GTK_WINDOW(win), "Hello there"); */
-
-  buildGUI();
-
-  gtk_main();
-}
-""")
-
-"""
-  entry1 = gtk_entry_new();
-  gchar *str = "<b>ZetCode</b>, knowledge only matters";
-  gtk_label_set_markup(GTK_LABEL(label), str);
-title = gtk_label_new("Windows");
-  wins = gtk_text_view_new();
-    cb = gtk_check_button_new_with_label("Show title");
-      statusbar = gtk_statusbar_new();
-"""
-
-
-# for variable names
 GTKWidgetBaseNames = {
   "TopWin": ["win", 0],
   "VBox": ["vbox", 0],
@@ -176,11 +19,7 @@ GTKWidgetBaseNames = {
   #"StatusBar": ["statusbar", 0],
   }
 
-def newVariableName(oType):
-  data = GTKWidgetBaseNames[oType]
-  name = data[0] + str(data[1])
-  data[1] = data[1] + 1
-  return name
+
    
    
 #! With the complexities of radiobuttons,
@@ -251,8 +90,6 @@ WidgetCreate = {
   #"Page" : Page, 
   #"StatusBar":  StatusBar,
   }
-
-
   
 GTKContainers = [
   #NB dont pack topwin :)
@@ -307,7 +144,6 @@ WidgetAttributeCode = {
     "pos": "    gtk_notebook_set_tab_pos(GTK_NOTEBOOK({}), GTK_POS_LEFT);"
         },
 }
-
 
   
 def widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname):
@@ -364,46 +200,5 @@ def buildCode(objModel):
     # append statements after declarations
     b.extend(statementBuilder)
     return b
-        
-
-
-"""
-MAIN
-"""
-filename = "main.c"
-b = []
-
-objectModel = ObjectModel.modelParse(demoGUIStructure)
-
-def printObj(obj, depth):
-    print(str(depth))
-    print(obj.name)
-
-styleModel = ObjectModel.styleParse(demoGUIStyle)
-print(styleModel)
-ObjectModel.stylePopulate(objectModel, styleModel)
-
-print(str(objectModel))
-ObjectModel.prettyPrint(objectModel)
-
-codeOpen(b)
-
-codeBuilder = buildCode(objectModel)
-
-b.extend(codeBuilder)
-#code = "\n".join(codeBuilder)
-#print(code)
-
-
-#print(b)
-
-codeClose(b)
-
-#print(getVariableName("Box"))
-#print(getVariableName("Box"))
-#print(getVariableName("Box"))
-
-with open (filename, "w") as f:
-    f.write("\n".join(b))     
-path = os.path.abspath(filename)
-print("gui code written to {}".format(path))
+     
+if __name__ == "__main__":
