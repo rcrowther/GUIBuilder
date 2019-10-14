@@ -5,7 +5,7 @@ TopWin|Builder Demo
         IconButton|Icon (undone)
         EmptyButton|Empty button (undone)
 
-        CheckButton|Example Text
+        CheckButton|!Example Text
         RadioButton*group1|Example Text 1
         RadioButton*group1|Example Text 2
         RadioButton*group1|!Example Text 3

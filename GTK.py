@@ -126,8 +126,15 @@ def RadioButtonCreate(b, obj, varname):
     b.append("    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON ({}), TRUE);".format(varname))
    
 def CheckButtonCreate(b, obj, varname):
-  b.append('    {} = gtk_check_button_new_with_label ("{}");'.format(varname, obj.oattrs["text"]))
-
+  s = obj.oattrs["text"]
+  active = False
+  if (s[0] == "!"):
+      s = s[0:]
+      active = True    
+  b.append('    {} = gtk_check_button_new_with_label ("{}");'.format(varname, s))
+  if (active):
+    b.append("    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON ({}), TRUE);".format(varname))
+   
 def TextEntryCreate(b, obj, varname):
   b.append('    {} = gtk_entry_new ();'.format(varname))
 def TextAreaCreate(b, obj, varname):
