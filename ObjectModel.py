@@ -2,6 +2,7 @@
 
 import collections
 import sys
+
 import Reporter
 import Object
 
@@ -170,6 +171,21 @@ TextObjects = {
   "CheckButton" ,
   "SelectEntry" ,
   }
+
+
+MarkupValues = {
+    "font-size" : ["tiny", "smaller", "small", "normal", "large", "larger", "huge",],
+    "font-style" : ["normal", "oblique", "italic"],
+    "font-weight" : ["lighter", "light", "normal", "bold", "bolder"],
+    #? Gtk accepts all X11 https://drafts.csswg.org/css-color-3/#svg-color
+    #? but do we want to?
+    "font-color" : [
+        "white", "black", 
+        "red", "green", "blue", 
+        "brown", "dark-gray", "light-gray", 
+        "orange", "yellow", "indigo", "violet",
+        ],
+    }
   
 def modelLintRec(children):
   for obj in children:
@@ -177,15 +193,29 @@ def modelLintRec(children):
     oType  = obj.otype
     if (oType in TextObjects and (not("text" in obj.oattrs ))):
       Reporter.error(
-        "Unknown",
+        "[Unknown]",
         "This object needs text for definition",
         "other objects may take optional text, these need text",
         '{}'.format(obj)
         )
+        
+    # check markup values
+    oattrs = obj.oattrs
+    if ("text" in oattrs):
+      #print(str(obj))
+      for k,v in oattrs.items():
+        if (k in MarkupValues):
+            if (not( v in MarkupValues[k] )):
+              Reporter.warning(
+                "[Unknown]",
+                "Unecognized markup value",
+                "valid values are {}".format(MarkupValues[k]),
+                '"{}:{}"'.format(k, v)
+                )                 
     # radios have osClass for grouping
     if (oType == "RadioButton" and  (not obj.sClass)):
       Reporter.error(
-        "Unknown",
+        "[Unknown]",
         "RadioButton needs a structure class for definition",
         "GUI will not function",
         '{}'.format(obj)

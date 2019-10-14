@@ -2,6 +2,8 @@
 
 import Object
 
+
+
 def codeOpen(b):
     b.append(
 """#include<gtk/gtk.h>
@@ -52,25 +54,60 @@ def newVariableName(oType):
 #! With the complexities of radiobuttons,
 # the below has become sadly un-dry.
 
+FontSizeToPango = {
+    "tiny" :  'xx-small',
+    "smaller": 'x-small',
+    "small": 'small', 
+    "normal": 'medium',
+    "large":'large', 
+    "larger": 'x-large', 
+    "huge":'xx-large',
+    }
+
+FontWeightToPango = {
+    "lighter": 'ultralight',
+    "light": 'light', 
+    "normal":'normal', 
+    "bold": 'bold', 
+    "bolder": 'ultrabold',
+    }
+
+def markupCreate(oattrs):
+  b = []
+  if ("font-size" in oattrs):
+      b.append('size=\\"{}\\"'.format(FontSizeToPango[oattrs["font-size"]]))
+  if ("font-style" in oattrs):
+      b.append('style=\\"{}\\"'.format(oattrs["font-style"]))
+  if ("font-weight" in oattrs):
+      b.append('weight=\\"{}\\"'.format(FontWeightToPango[oattrs["font-weight"]]))
+  if ("font-color" in oattrs):
+      # For colour, remove the '-' for X11
+      b.append('foreground=\\"{}\\"'.format(oattrs["font-color"].replace("-", "")))
+  text = oattrs.get("text", "")
+  return "<span {}>{}</span>".format(" ".join(b), text)
+  
 # groupname (sClass) -> last_var_in_group
 RadioGroups = {}
   
-def TopWin(b, obj, varname):
+def TopWinCreate(b, obj, varname):
   b.append('    {} = gtk_window_new(GTK_WINDOW_TOPLEVEL);'.format(varname))
-def VBox(b, obj, varname):
+def VBoxCreate(b, obj, varname):
   b.append('    {} = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);'.format(varname))
-def HBox(b, obj, varname):
+def HBoxCreate(b, obj, varname):
   b.append('    {} = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);'.format(varname))
-def Label(b, obj, varname):
-  b.append('    {} = gtk_label_new ("{}");'.format(varname, obj.oattrs["text"]))
+def LabelCreate(b, obj, varname):
+  b.append('    {} = gtk_label_new (NULL);'.format(varname))
+  oattrs = obj.oattrs
+  markup =  markupCreate(oattrs)
+  b.append('    gtk_label_set_markup (GTK_LABEL({}), "{}");'.format(varname, markup))
 
-def Button(b, obj, varname):
+def ButtonCreate(b, obj, varname):
   b.append('    {} = gtk_button_new_with_label ("{}");'.format(varname, obj.oattrs["text"]))
-def IconButton(b, obj, varname):
+def IconButtonCreate(b, obj, varname):
   b.append('    {} = gtk_button_new ();'.format(varname))
-def EmptyButton(b, obj, varname):
+def EmptyButtonCreate(b, obj, varname):
   b.append('    {} = gtk_button_new ();'.format(varname))
-def RadioButton(b, obj, varname):
+def RadioButtonCreate(b, obj, varname):
   b.append('    {} = gtk_radio_button_new_with_label (NULL, "{}");'.format(varname, obj.oattrs["text"]))
   groupName = obj.sClass
   if (groupName in RadioGroups):
@@ -79,17 +116,17 @@ def RadioButton(b, obj, varname):
   else:
     RadioGroups[groupName] = varname
         
-def CheckButton(b, obj, varname):
+def CheckButtonCreate(b, obj, varname):
   b.append('    {} = gtk_check_button_new_with_label ("{}");'.format(varname, obj.oattrs["text"]))
 
-def TextEntry(b, obj, varname):
+def TextEntryCreate(b, obj, varname):
   b.append('    {} = gtk_entry_new ();'.format(varname))
-def TextArea(b, obj, varname):
+def TextAreaCreate(b, obj, varname):
   b.append('    {} = gtk_text_view_new ();'.format(varname))
-def SelectEntry(b, obj, varname):
+def SelectEntryCreate(b, obj, varname):
   b.append('    {} = gtk_combo_box_new ();'.format(varname))
   
-def PageBox(b, obj, varname):
+def PageBoxCreate(b, obj, varname):
   b.append('    {} = gtk_notebook_new ();'.format(varname))
 
 # def Page(b, obj, varname):
@@ -101,21 +138,21 @@ def PageBox(b, obj, varname):
   
   
 WidgetCreate = {
-  "TopWin": TopWin,
-  "VBox": VBox,
-  "HBox": HBox,
-  "Label" : Label,
-  "TextEntry" : TextEntry,
-  "TextArea" : TextArea,
-  "SelectEntry" : SelectEntry,
-  "Button": Button,
-  "IconButton": IconButton,
-  "EmptyButton": EmptyButton,
-  "RadioButton": RadioButton,
-  "CheckButton": CheckButton,
-  "PageBox" : PageBox,
-  #"Page" : Page, 
-  #"StatusBar":  StatusBar,
+  "TopWin": TopWinCreate,
+  "VBox": VBoxCreate,
+  "HBox": HBoxCreate,
+  "Label" : LabelCreate,
+  "TextEntry" : TextEntryCreate,
+  "TextArea" : TextAreaCreate,
+  "SelectEntry" : SelectEntryCreate,
+  "Button": ButtonCreate,
+  "IconButton": IconButtonCreate,
+  "EmptyButton": EmptyButtonCreate,
+  "RadioButton": RadioButtonCreate,
+  "CheckButton": CheckButtonCreate,
+  "PageBox" : PageBoxCreate,
+  #"Page" : PageCreate, 
+  #"StatusBar":  StatusBarCreate,
   }
   
 GTKContainers = [
@@ -136,7 +173,7 @@ GTKPosition = {
     "right": "GTK_POS_RIGHT",
     "top": "GTK_POS_TOP",
     "bottom": "GTK_POS_BOTTOM",
-        }
+    }
         
 def notebookPos(k, v):
     return "    gtk_notebook_set_tab_pos(GTK_NOTEBOOK({}), GTK_POS_LEFT);".format(k, GTKPosition[v])

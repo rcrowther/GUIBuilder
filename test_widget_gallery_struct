@@ -1,0 +1,21 @@
+TopWin|Builder Demo
+    VBox#container
+        Label.warning|example label
+        Button#sendButton|Text
+        IconButton|Icon (undone)
+        EmptyButton|Empty button (undone)
+
+        CheckButton|Example Text
+        RadioButton*group1|Example Text 1
+        RadioButton*group1|Example Text 2
+        RadioButton*group1|Example Text 3
+
+        SelectEntry|Selection 1
+        TextEntry
+        TextArea
+        HBox
+          Label
+          Button|Find
+          Button|Close
+        
+        

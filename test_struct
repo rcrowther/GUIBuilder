@@ -2,7 +2,7 @@
     VBox
       PageBox#pages
         VBox|info
-          Label|trigger
+          Label.warning|Hazard!
         VBox|options
           CheckButton|null force
           CheckButton|zero force
