@@ -21,6 +21,8 @@ from Object import WidgetTypes
 #! comments for both config files
 #! labels need text, even if nothing. Or default?
 #? HBox homogenous
+#! need an indicator for expanding pack value
+
  
         
 def generateOutput(structText, styleText, renderType):

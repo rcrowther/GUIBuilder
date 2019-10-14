@@ -25,9 +25,18 @@ TopWin
 
 First object must be a TopWin, and currently always a TopWin
 
-One twist: To add the multiple texts for a SelectEntry, use the vertical bar,
+=== Tweaks 
+To add the multiple texts for a SelectEntry, use the vertical bar,
 
         SelectEntry;Selection 1|Selection 2|Selection 3
+
+To initially select a RadioButton (from a group), or select an item from a SelectEntry, preceed the name with an exclaimation.
+ 
+      HBox
+        RadioButton*group1|Left
+        RadioButton*group1|!Right
+
+"Right" is initially selected.
 
 
 == Style File

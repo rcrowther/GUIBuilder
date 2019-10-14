@@ -6,7 +6,8 @@ import Object
 
 def codeOpen(b):
     b.append(
-"""#include<gtk/gtk.h>
+"""#include <gtk/gtk.h>
+#include "test_callbacks.h"
 
 void buildGUI() {
   /* Auto generated code. Heedless change generates turmoil */
@@ -103,19 +104,27 @@ def LabelCreate(b, obj, varname):
 
 def ButtonCreate(b, obj, varname):
   b.append('    {} = gtk_button_new_with_label ("{}");'.format(varname, obj.oattrs["text"]))
+  b.append('    g_signal_connect(GTK_BUTTON({}), "clicked", G_CALLBACK(on_button_clicked), NULL);'.format(varname))
 def IconButtonCreate(b, obj, varname):
   b.append('    {} = gtk_button_new ();'.format(varname))
 def EmptyButtonCreate(b, obj, varname):
   b.append('    {} = gtk_button_new ();'.format(varname))
 def RadioButtonCreate(b, obj, varname):
-  b.append('    {} = gtk_radio_button_new_with_label (NULL, "{}");'.format(varname, obj.oattrs["text"]))
+  s = obj.oattrs["text"]
+  active = False
+  if (s[0] == "!"):
+      s = s[0:]
+      active = True
+  b.append('    {} = gtk_radio_button_new_with_label (NULL, "{}");'.format(varname, s))
   groupName = obj.sClass
   if (groupName in RadioGroups):
     src_varname = RadioGroups[groupName]
     b.append("    gtk_radio_button_join_group (GTK_RADIO_BUTTON ({}), GTK_RADIO_BUTTON ({}));".format(varname, src_varname))
   else:
     RadioGroups[groupName] = varname
-        
+  if (active):
+    b.append("    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON ({}), TRUE);".format(varname))
+   
 def CheckButtonCreate(b, obj, varname):
   b.append('    {} = gtk_check_button_new_with_label ("{}");'.format(varname, obj.oattrs["text"]))
 
@@ -126,11 +135,14 @@ def TextAreaCreate(b, obj, varname):
 def SelectEntryCreate(b, obj, varname):
   b.append('    {} = gtk_combo_box_text_new ();'.format(varname))
   entryTexts = obj.oattrs["text"].split(";")
+  activeIdx = 0
   for i,e in enumerate(entryTexts):
-    b.append('    gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT({}), "{}", "{}");'.format(varname, i, e))
-  #gtk_combo_box_text_get_active_text
-  #! setting this requires more markup?
-  b.append('    gtk_combo_box_set_active(GTK_COMBO_BOX({}), 0);'.format(varname))
+    o = e
+    if (e[0] == "!"):
+      o = e[0:]
+      activeIdx = i
+    b.append('    gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT({}), "{}", "{}");'.format(varname, i, o))
+  b.append('    gtk_combo_box_set_active(GTK_COMBO_BOX({}), {});'.format(varname, activeIdx))
 
 def PageBoxCreate(b, obj, varname):
   b.append('    {} = gtk_notebook_new ();'.format(varname))
@@ -237,7 +249,9 @@ def widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname):
   if (parentObj.otype in GTKContainers):
     statementBuilder.append("    gtk_container_add(GTK_CONTAINER({}), {});".format(parentVar, varname))
   elif (parentObj.otype in GTKBoxes):
-    statementBuilder.append("    gtk_box_pack_start(GTK_BOX({}), {}, TRUE, TRUE, 0);".format(parentVar, varname))
+    statementBuilder.append("    gtk_box_pack_start(GTK_BOX({}), {}, FALSE, FALSE, 0);".format(parentVar, varname))
+    # what most people want for expansion
+    #statementBuilder.append("    gtk_box_pack_start(GTK_BOX({}), {}, TRUE, TRUE, 0);".format(parentVar, varname))
   elif (parentObj.otype == "PageBox"):
     labelName = varname + "_label"
     statementBuilder.append('    GtkWidget * {} = gtk_label_new ("{}");'.format(labelName, obj.oattrs["text"]))

@@ -8,9 +8,9 @@ TopWin|Builder Demo
         CheckButton|Example Text
         RadioButton*group1|Example Text 1
         RadioButton*group1|Example Text 2
-        RadioButton*group1|Example Text 3
+        RadioButton*group1|!Example Text 3
 
-        SelectEntry|Selection 1;Selection 2;Selection 3
+        SelectEntry|Selection 1;!Selection 2;Selection 3
         TextEntry
         TextArea
         HBox
