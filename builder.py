@@ -7,11 +7,11 @@ import argparse
 
 import ObjectModel
 import GTK
+from Object import WidgetTypes
+
 
 #! implicits == bad idea
-#! demos?
 #! Convert attrs to funcs
-#! make into callable module
 #! Selector box definitions?
 #! external wiring?
 #! PrettyPrint as original form?
@@ -23,57 +23,6 @@ import GTK
 #! comments for both config files
 #! labels need text, even if nothing. Or default?
 #? HBox homogenous
-""" 
-gui.structure(""
-WindowMain#win
-  VBox#container
-    TextList#fileList
-    DropBox#dropArea
-      Icon#dropicon
-      TextBox#dropInstructions
-      Button#sendButton
-    StatusBar
-      TextBox#status
-"
-)
-"""
-"""
-demoGUIStructure = 
-VBox#container
-  TextList#fileList
-  DropBox#dropArea
-    Icon#dropicon
-    TextBox#dropInstructions
-    Button#sendButton
-  StatusBar
-    TextBox#status
-"""
-
-
-demoGUIStructure = """
-  TopWin|Builder Demo
-    VBox
-      PageBox#pages
-        VBox|info
-          Label|trigger
-        VBox|options
-          CheckButton|null force
-          CheckButton|zero force
-      Button|Open
-"""
-
-demoGUIStyle = """
-    #win {text: ""PhotoEmailer"}
-    TopWin {padding: 30;}
-    #dropArea {type: images}
-    #dropicon {url:""/nice/image/icon.png"}
-    #dropInstructions { text: ""choose a photo or add it here"}
-    #container {background-color: light-blue; padding: 30;}
-    #pages {pos: left;}
-    #fileList {h: expand; v: shrink; }
-    #dropArea {h: expand; max-height: 20%; font-size:large; font-weight:bold; }
-    #sendButton {font-size: large; background-color: mid-blue; color: white;}
-"""
  
         
 def generateOutput(structText, styleText, renderType):
@@ -127,6 +76,11 @@ if __name__ == "__main__":
         help="output file",
         )
     parser.add_argument(
+        '--widgets',
+        help="List available widget names",
+        action="store_true"
+        )
+    parser.add_argument(
         '-ss',
         '--style-src',
         type=str,
@@ -141,8 +95,13 @@ if __name__ == "__main__":
                 
     args = parser.parse_args()
 
-
     #print(args)
+    
+    if (args.widgets):
+      for widget in WidgetTypes:
+        print("    {}".format(widget))      
+      sys.exit()
+        
     # Resolve style source if stated (or default to empty)
     if (args.style_src):
       with open(args.style_src) as f:

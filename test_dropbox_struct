@@ -1,0 +1,9 @@
+TopWin
+  VBox#container
+    TextList#fileList
+    DropBox#dropArea
+      Icon#dropicon
+      TextBox#dropInstructions
+      Button#sendButton
+    StatusBar
+      TextBox#status
