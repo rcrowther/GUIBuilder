@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import collections
 import sys
 import argparse
 
@@ -12,7 +11,6 @@ from Object import WidgetTypes
 
 #! implicits == bad idea
 #! Convert attrs to funcs
-#! Selector box definitions?
 #! external wiring?
 #! PrettyPrint as original form?
 #! Spacing padding borders...

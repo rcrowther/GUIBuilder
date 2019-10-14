@@ -124,8 +124,14 @@ def TextEntryCreate(b, obj, varname):
 def TextAreaCreate(b, obj, varname):
   b.append('    {} = gtk_text_view_new ();'.format(varname))
 def SelectEntryCreate(b, obj, varname):
-  b.append('    {} = gtk_combo_box_new ();'.format(varname))
-  
+  b.append('    {} = gtk_combo_box_text_new ();'.format(varname))
+  entryTexts = obj.oattrs["text"].split(";")
+  for i,e in enumerate(entryTexts):
+    b.append('    gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT({}), "{}", "{}");'.format(varname, i, e))
+  #gtk_combo_box_text_get_active_text
+  #! setting this requires more markup?
+  b.append('    gtk_combo_box_set_active(GTK_COMBO_BOX({}), 0);'.format(varname))
+
 def PageBoxCreate(b, obj, varname):
   b.append('    {} = gtk_notebook_new ();'.format(varname))
 

@@ -10,7 +10,7 @@ TopWin|Builder Demo
         RadioButton*group1|Example Text 2
         RadioButton*group1|Example Text 3
 
-        SelectEntry|Selection 1
+        SelectEntry|Selection 1;Selection 2;Selection 3
         TextEntry
         TextArea
         HBox
