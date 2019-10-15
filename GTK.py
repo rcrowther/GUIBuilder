@@ -75,17 +75,23 @@ FontWeightToPango = {
 
 def markupCreate(oattrs):
   b = []
-  if ("font-size" in oattrs):
-      b.append('size=\\"{}\\"'.format(FontSizeToPango[oattrs["font-size"]]))
-  if ("font-style" in oattrs):
-      b.append('style=\\"{}\\"'.format(oattrs["font-style"]))
-  if ("font-weight" in oattrs):
-      b.append('weight=\\"{}\\"'.format(FontWeightToPango[oattrs["font-weight"]]))
-  if ("font-color" in oattrs):
-      # For colour, remove the '-' for X11
-      b.append('foreground=\\"{}\\"'.format(oattrs["font-color"].replace("-", "")))
   text = oattrs.get("text", "")
-  return "<span {}>{}</span>".format(" ".join(b), text)
+  if (text):
+      b.append('<span')      
+      if ("font-size" in oattrs):
+          b.append(' size=\\"{}\\"'.format(FontSizeToPango[oattrs["font-size"]]))
+      if ("font-style" in oattrs):
+          b.append(' style=\\"{}\\"'.format(oattrs["font-style"]))
+      if ("font-weight" in oattrs):
+          b.append(' weight=\\"{}\\"'.format(FontWeightToPango[oattrs["font-weight"]]))
+      if ("font-color" in oattrs):
+          # For colour, remove the '-' for X11
+          b.append(' foreground=\\"{}\\"'.format(oattrs["font-color"].replace("-", "")))
+      b.append('>')      
+      b.append(text)      
+      b.append('</span>')      
+  #return "<span {}>{}</span>".format(" ".join(b), text)
+  return "".join(b)
   
 # groupname (sClass) -> last_var_in_group
 RadioGroups = {}
@@ -183,6 +189,11 @@ WidgetCreate = {
   #"StatusBar":  StatusBarCreate,
   }
   
+  
+  
+# Attribute building
+
+## for packing
 GTKContainers = [
   #NB dont pack topwin :)
   "TopWin",
@@ -190,19 +201,20 @@ GTKContainers = [
   #"PageBox",
   ]
 
-
 GTKBoxes = [
   "VBox",
   "HBox",
   ]
 
+
+## for attribute rendering
 GTKPosition = {
     "left": "GTK_POS_LEFT",
     "right": "GTK_POS_RIGHT",
     "top": "GTK_POS_TOP",
     "bottom": "GTK_POS_BOTTOM",
     }
-        
+      
 def notebookPos(k, v):
     return "    gtk_notebook_set_tab_pos(GTK_NOTEBOOK({}), {});".format(k, GTKPosition[v])
 
@@ -212,7 +224,6 @@ def setPadding(k, v):
 def setTitle(k, v):
     return '    gtk_window_set_title(GTK_WINDOW({}), "{}");'.format(k, v)
       
-#! convert to funcs
 WidgetAttributeCode = {
   "TopWin" : {
     "text" : setTitle,
@@ -253,10 +264,9 @@ def widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname):
   # box_set_orientation (GTK_ORIENTATION_VERTICAL)
   if obj.otype in WidgetAttributeCode:
       attributeCodes = WidgetAttributeCode[obj.otype]
-      # Get valid attributes 
+      # Get valid attributes via intersection 
       attributesWithCode = obj.oattrs.keys() & attributeCodes.keys()
       for attr in attributesWithCode:
-        #code = attributeCodes[attr].format(varname, obj.oattrs[attr])
         code = attributeCodes[attr](varname, obj.oattrs[attr])
         statementBuilder.append(code)
         
@@ -264,16 +274,17 @@ def widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname):
   if (parentObj.otype in GTKContainers):
     statementBuilder.append("    gtk_container_add(GTK_CONTAINER({}), {});".format(parentVar, varname))
   elif (parentObj.otype in GTKBoxes):
-    statementBuilder.append("    gtk_box_pack_start(GTK_BOX({}), {}, FALSE, FALSE, 0);".format(parentVar, varname))
-    # what most people want for expansion
-    #statementBuilder.append("    gtk_box_pack_start(GTK_BOX({}), {}, TRUE, TRUE, 0);".format(parentVar, varname))
+    if (not('expand' in obj.oattrs)):
+      statementBuilder.append("    gtk_box_pack_start(GTK_BOX({}), {}, FALSE, FALSE, 0);".format(parentVar, varname))
+    # what most people want most of the time for expansion
+    if ('expand' in obj.oattrs):
+      statementBuilder.append("    gtk_box_pack_start(GTK_BOX({}), {}, TRUE, TRUE, 0);".format(parentVar, varname))
   elif (parentObj.otype == "PageBox"):
     labelName = varname + "_label"
     statementBuilder.append('    GtkWidget * {} = gtk_label_new ("{}");'.format(labelName, obj.oattrs["text"]))
     statementBuilder.append("    gtk_notebook_append_page (GTK_NOTEBOOK({}), GTK_WIDGET({}), GTK_WIDGET({}));".format(parentVar, varname, labelName))
-
   #else:
-    #? else do nothing?
+    #? else do nothing? This is an error.
     #warning("'{}#{}' not recognised as a container".format(parentObj.otype, parentObj.oid),"'{}#{}' is unpacked".format(obj.otype, obj.oid))
   
         

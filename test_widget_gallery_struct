@@ -12,10 +12,10 @@ TopWin|Builder Demo
 
         SelectEntry|Selection 1;!Selection 2;Selection 3
         TextEntry
-        TextArea
+        +TextArea
         
         HBox
-          Label
+          +Label
           Button|Find
           Button|Close
         

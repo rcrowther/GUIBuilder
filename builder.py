@@ -5,33 +5,48 @@ import sys
 import argparse
 
 import ObjectModel
+import Object
 import GTK
 from Object import WidgetTypes
 
 
-#! implicits == bad idea
-#! Convert attrs to funcs
+#? implicits == bad idea
+#? Detect select mark in ObjectModel, not GTK
 #! external wiring?
-#! PrettyPrint as original form?
 #! Spacing padding borders...
 #! cleanup GTK file
 #! Root warning is annoying
 #! empty struct makes code error
-#! only one Topwin
 #! comments for both config files
 #! labels need text, even if nothing. Or default?
 #? HBox homogenous
-#! need an indicator for expanding pack value
 
- 
-        
-def generateOutput(structText, styleText, renderType):
+def generateModel(structText, styleText, renderType):
     # Use for calls, this is the API.
     # For lint() see ObjectModel    
     # Make model and populate with any style
     objectModel = ObjectModel.modelParse(structText)
     styleModel = ObjectModel.styleParse(styleText)
-    ObjectModel.stylePopulate(objectModel, styleModel)    
+    ObjectModel.stylePopulate(objectModel, styleModel)     
+    return objectModel
+       
+def lint(structText, styleText):
+    ObjectModel.lint(structText, styleText)
+
+
+def prettyPrintModel(structText, styleText, renderType):
+    objectModel = generateModel(structText, styleText, renderType)   
+    Object.prettyPrint(objectModel)  
+    
+def treePrintModel(structText, styleText, renderType):
+    objectModel = generateModel(structText, styleText, renderType)   
+    print(objectModel) 
+          
+def modelThenRender(structText, styleText, renderType):
+    # Use for calls, this is the API.
+    # For lint() see ObjectModel    
+    # Make model and populate with any style
+    objectModel = generateModel(structText, styleText, renderType)   
     
     # render
     o = ""
@@ -73,7 +88,20 @@ if __name__ == "__main__":
         '--destination',
         type=str,
         default="main.c",
-        help="output file",
+        help="file name for output",
+        )
+        
+    parser.add_argument(
+        "-p",
+        '--pretty-print',
+        help="Print the model constructed from the parser",
+        action="store_true"
+        )
+    parser.add_argument(
+        "-t",
+        '--tree',
+        help="Print the model constructed from the parser",
+        action="store_true"
         )
     parser.add_argument(
         '--widgets',
@@ -107,12 +135,22 @@ if __name__ == "__main__":
       with open(args.style_src) as f:
         args.style_src = f.read()
           
-
     if args.lint:
-        ObjectModel.lint(args.STRUCTURE_SOURCE.read(), args.style_src)
+        lint(args.STRUCTURE_SOURCE.read(), args.style_src)
+        if (args.verbose):
+          print('lint done')
+        sys.exit()
 
+    if args.pretty_print:
+        prettyPrintModel(args.STRUCTURE_SOURCE.read(), args.style_src, args.render_type)
+        sys.exit()
+        
+    if args.tree:
+        treePrintModel(args.STRUCTURE_SOURCE.read(), args.style_src, args.render_type)
+        sys.exit()
+                    
     if (not(args.lint)):
-        o = generateOutput(
+        o = modelThenRender(
           args.STRUCTURE_SOURCE.read(), 
           args.style_src, 
           args.render_type
@@ -120,5 +158,5 @@ if __name__ == "__main__":
         with open(args.destination, "w") as f:
           f.write(o)
           
-    if (args.verbose):
-        print('done')
+        if (args.verbose):
+           print('done')

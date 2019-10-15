@@ -34,23 +34,34 @@ TopWin
 First object must be a TopWin, and currently always a TopWin
 
 === Tweaks 
-To add the multiple texts for a SelectEntry, use the vertical bar,
+To add the multiple texts for a SelectEntry, use a semi-colon,
 
-        SelectEntry;Selection 1|Selection 2|Selection 3
+        SelectEntry|Selection 1;Selection 2;Selection 3
 
-To initially select a RadioButton (from a group), or select an item from a SelectEntry, preceed the name with an exclaimation.
+Only has effect on SelectEntry text.
+
+To initially select a RadioButton (from a group), a CheckBox, or an item from a SelectEntry, preceed the text with an exclaimation.
  
       HBox
         RadioButton*group1|Left
         RadioButton*group1|!Right
 
-"Right" is initially selected.
+So "Right" is initially selected.
+
+Default size for widgets is natural height, not to expand. To allow a widget to expand, use a ''+' before the widgetname,
+
+      VBox
+        Label
+        +TextArea
+        Button
+
+TextArea will expand.
 
 
 == Style File
 Very few widgets accept style of any kind. There is some markup for labels, and padding on some objects. 
 
-Style is like a css file
+Style is like a CSS file
 
 WidgetName {
 }
@@ -74,8 +85,10 @@ To debug/lint, add the -l/--lint option,
 
 Then compile with the meson/ninja builder.
 
+
 == Before you get to say anything...
 Yes, I know of GTKBuilder, Glade, and so much more.
+
 
 == Current state
 Parsers fairly robust, allow whitespace and variable indents. Linting helpful but not comprehensive. Widget sets only for the smallest and most limited of interfaces. 

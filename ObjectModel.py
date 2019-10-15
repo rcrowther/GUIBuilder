@@ -59,11 +59,24 @@ def modelLineParse(lineLen, line):
     ## Type
     oType = line[:end]
     
-    obj = Object.new(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs={}, children=[])
-    #print(str(obj))
+    # couple of tweaks which affect attributes
+    #! include selection? But not as general as these? Yet...
+    oAttrs = {}
+    if (oType[0] == "+"):
+        oType = oType[1:]
+        oAttrs["expand"] = "True"
+
+
     # str as an attribute as it niether key nor group?
     if (oStr):
-      obj.oattrs["text"] = oStr
+        #? if (oStr[0] == "!"):
+        #    oStr = oStr[1:]
+        #    oAttrs["select"] = "True"
+        oAttrs["text"] = oStr
+      
+    obj = Object.new(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs=oAttrs, children=[])
+    #print(str(obj))
+
     return obj
     
             
@@ -116,8 +129,8 @@ def modelParse(text):
         currentParent.children.append(DObj)
     return treeRoot
 
-
-#! Two linters, one on src, one on model
+#! only one Topwin
+#! ignore for now, expensive to do and not always the case
 def modelParseLint(text):
   # Assume no interest in indenting
   idStash = []
@@ -140,7 +153,7 @@ def modelParseLint(text):
         # '"{}"'.format(l)
         # )         
 
-    # Also covers accidental appeareence of 'Root'
+    # Also covers accidental appearance of 'Root'
     oType = obj.otype
     if (oType and not(oType in Object.WidgetTypes)):
        Reporter.error(
@@ -161,75 +174,6 @@ def modelParseLint(text):
             '"{}"'.format(oId)
             )
       idStash.append(oId)
-
-
-# For linting
-#? warnnings about
-# "TextArea",
-# "Label",
-# or annoying
-TextObjects = {
-  "Button",
-  "RadioButton" ,
-  "CheckButton" ,
-  "SelectEntry" ,
-  }
-
-
-MarkupValues = {
-    "font-size" : ["tiny", "smaller", "small", "normal", "large", "larger", "huge",],
-    "font-style" : ["normal", "oblique", "italic"],
-    "font-weight" : ["lighter", "light", "normal", "bold", "bolder"],
-    #? Gtk accepts all X11 https://drafts.csswg.org/css-color-3/#svg-color
-    #? but do we want to?
-    "font-color" : [
-        "white", "black", 
-        "red", "green", "blue", 
-        "brown", "dark-gray", "light-gray", 
-        "orange", "yellow", "indigo", "violet",
-        ],
-    }
-  
-def modelLintRec(children):
-  for obj in children:
-    # text objects have/need text
-    oType  = obj.otype
-    if (oType in TextObjects and (not("text" in obj.oattrs ))):
-      Reporter.error(
-        "[Unknown]",
-        "This object needs text for definition",
-        "other objects may take optional text, these need text",
-        '{}'.format(obj)
-        )
-        
-    # check markup values
-    oattrs = obj.oattrs
-    if ("text" in oattrs):
-      #print(str(obj))
-      for k,v in oattrs.items():
-        if (k in MarkupValues):
-            if (not( v in MarkupValues[k] )):
-              Reporter.warning(
-                "[Unknown]",
-                "Unecognized markup value",
-                "valid values are {}".format(MarkupValues[k]),
-                '"{}:{}"'.format(k, v)
-                )                 
-    # radios have osClass for grouping
-    if (oType == "RadioButton" and  (not obj.sClass)):
-      Reporter.error(
-        "[Unknown]",
-        "RadioButton needs a structure class for definition",
-        "GUI will not function",
-        '{}'.format(obj)
-        )
-    modelLintRec(obj.children)
-  
-def modelLint(objModel):
-  # Some checks on data consistency
-  # To be run *after* style population
-  modelLintRec(objModel.children)
-
 
 
 # Style parser
@@ -412,6 +356,77 @@ def stylePopulateRec(obj, styleModel):
 
 def stylePopulate(objectModel, styleModel):
     stylePopulateRec(objectModel, styleModel)
+
+
+
+
+# For linting
+#? warnnings about
+# "TextArea",
+# "Label",
+# or annoying?
+TextObjects = {
+  "Button",
+  "RadioButton" ,
+  "CheckButton" ,
+  "SelectEntry" ,
+  }
+
+#? duplicates with info elsewhere?
+MarkupValues = {
+    "font-size" : ["tiny", "smaller", "small", "normal", "large", "larger", "huge",],
+    "font-style" : ["normal", "oblique", "italic"],
+    "font-weight" : ["lighter", "light", "normal", "bold", "bolder"],
+    #? Gtk accepts all X11 https://drafts.csswg.org/css-color-3/#svg-color
+    #? but do we want to?
+    "font-color" : [
+        "white", "black", 
+        "red", "green", "blue", 
+        "brown", "dark-gray", "light-gray", 
+        "orange", "yellow", "indigo", "violet",
+        ],
+    }
+  
+def modelLintRec(children):
+  # for errors only possible after the model is populated by style
+  for obj in children:
+    # text objects have/need text
+    oType  = obj.otype
+    if (oType in TextObjects and (not("text" in obj.oattrs ))):
+      Reporter.error(
+        "[Unknown]",
+        "This object needs text for definition",
+        "other objects may take optional text, these need text",
+        '{}'.format(obj)
+        )
+        
+    # check markup values
+    oattrs = obj.oattrs
+    if ("text" in oattrs):
+      #print(str(obj))
+      for k,v in oattrs.items():
+        if (k in MarkupValues):
+            if (not( v in MarkupValues[k] )):
+              Reporter.warning(
+                "[Unknown]",
+                "Unecognized markup value",
+                "valid values are {}".format(MarkupValues[k]),
+                '"{}:{}"'.format(k, v)
+                )                 
+    # radios have osClass for grouping
+    if (oType == "RadioButton" and  (not obj.sClass)):
+      Reporter.error(
+        "[Unknown]",
+        "RadioButton needs a structure class for definition",
+        "GUI will not function",
+        '{}'.format(obj)
+        )
+    modelLintRec(obj.children)
+  
+def modelLint(objModel):
+  # Some checks on data consistency
+  # To be run *after* style population
+  modelLintRec(objModel.children)
 
 
 def lint(modelText, styleText):
