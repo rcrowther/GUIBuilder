@@ -107,6 +107,9 @@ def ButtonCreate(b, obj, varname):
   b.append('    g_signal_connect(GTK_BUTTON({}), "clicked", G_CALLBACK(on_button_clicked), NULL);'.format(varname))
 def IconButtonCreate(b, obj, varname):
   b.append('    {} = gtk_button_new ();'.format(varname))
+  b.append('    GtkWidget *image = gtk_image_new_from_file ("{}");'.format(obj.oattrs["text"]))
+  b.append('    gtk_button_set_image (GTK_BUTTON({}), image);'.format(varname))
+  b.append('    g_signal_connect(GTK_BUTTON({}), "clicked", G_CALLBACK(on_button_clicked), NULL);'.format(varname))
 def EmptyButtonCreate(b, obj, varname):
   b.append('    {} = gtk_button_new ();'.format(varname))
 def RadioButtonCreate(b, obj, varname):
@@ -201,36 +204,39 @@ GTKPosition = {
     }
         
 def notebookPos(k, v):
-    return "    gtk_notebook_set_tab_pos(GTK_NOTEBOOK({}), GTK_POS_LEFT);".format(k, GTKPosition[v])
+    return "    gtk_notebook_set_tab_pos(GTK_NOTEBOOK({}), {});".format(k, GTKPosition[v])
 
+def setPadding(k, v):
+    return "    gtk_container_set_border_width(GTK_CONTAINER({}), {});".format(k, v)
+
+def setTitle(k, v):
+    return '    gtk_window_set_title(GTK_WINDOW({}), "{}");'.format(k, v)
+      
 #! convert to funcs
 WidgetAttributeCode = {
   "TopWin" : {
-    "text" : '    gtk_window_set_title(GTK_WINDOW({}), "{}");',
-    "padding": "    gtk_container_set_border_width(GTK_CONTAINER({}), {});"
+    "text" : setTitle,
+    "padding": setPadding,
     },
   "Label" : {
-  #? colors
-        },    
+        },
   "VBox" : {
-    "padding": "    gtk_container_set_border_width(GTK_CONTAINER({}), {});"
+    "padding": setPadding,
     },
   "HBox" : {
-    "padding": "    gtk_container_set_border_width(GTK_CONTAINER({}), {});"
+    "padding": setPadding,
     },
   "TextEntry" : {
-    },   
+    },
   "TextArea" : {
     #! No, not that simple, its a buffer
-    },  
+    },
   "Button" : {
-#? colors
         },
   "CheckButton" : {
         },  
   "PageBox" : {
-    #"pos": notebookPos,
-    "pos": "    gtk_notebook_set_tab_pos(GTK_NOTEBOOK({}), GTK_POS_LEFT);"
+    "pos": notebookPos
         },
 }
 
@@ -247,9 +253,11 @@ def widgetDeclarations(obj, statementBuilder, parentObj, parentVar, varname):
   # box_set_orientation (GTK_ORIENTATION_VERTICAL)
   if obj.otype in WidgetAttributeCode:
       attributeCodes = WidgetAttributeCode[obj.otype]
+      # Get valid attributes 
       attributesWithCode = obj.oattrs.keys() & attributeCodes.keys()
       for attr in attributesWithCode:
-        code = attributeCodes[attr].format(varname, obj.oattrs[attr])
+        #code = attributeCodes[attr].format(varname, obj.oattrs[attr])
+        code = attributeCodes[attr](varname, obj.oattrs[attr])
         statementBuilder.append(code)
         
   # Pack widget

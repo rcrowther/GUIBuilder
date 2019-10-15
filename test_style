@@ -4,7 +4,7 @@
     #dropicon {url:""/nice/image/icon.png"}
     #dropInstructions { text: ""choose a photo or add it here"}
     #container {background-color: light-blue; padding: 30;}
-    #pages {pos: left;}
+    #pages {pos: right;}
     #fileList {h: expand; v: shrink; }
     #dropArea {
         h: expand; 

@@ -2,7 +2,7 @@ TopWin|Builder Demo
     VBox#container
         Label.warning|example label
         Button#sendButton|Text
-        IconButton|Icon (undone)
+        IconButton|../images/arrow.png
         EmptyButton|Empty button (undone)
 
         CheckButton|!Example Text
@@ -13,6 +13,7 @@ TopWin|Builder Demo
         SelectEntry|Selection 1;!Selection 2;Selection 3
         TextEntry
         TextArea
+        
         HBox
           Label
           Button|Find

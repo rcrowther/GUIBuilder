@@ -16,7 +16,15 @@ type#id.class.sClass;text
 ~~ Text 
 :: is text associated with the widget (button/label text etc.)
 
-Lines are indented, causing nesting
+Don't repeat a mark previous to a linebreak mark, but you can use one afterwards. This is ok, the dot in ''.png' will not be seen as a class mark,
+
+        IconButton|/home/rob/Code/GUIBuilder/arrow.png
+
+but this id with a bar in it is not ok,
+
+        IconButton#my|friend.hotspot|Huzzah
+
+Lines are indented, causing nesting,
 
 TopWin
   HBox

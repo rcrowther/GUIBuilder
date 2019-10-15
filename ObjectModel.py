@@ -22,9 +22,11 @@ containerNames = [
 StackItem = collections.namedtuple('StackItem', 'indent obj')
 StackItemEmpty = StackItem(0, None)
 
+
 def modelLineParse(lineLen, line):
     # Parse an object definition
-    # whitespace shoul be previously stripped
+    # whitespace should be previously stripped
+    #NB: Python has no proper reverse search, but thats ok.
     ## Text
     end = lineLen
     start = line.find("|")
@@ -34,21 +36,21 @@ def modelLineParse(lineLen, line):
         end = start
     
     ## Class
-    start = line.find(".")
+    start = line.find(".", 0, end)
     oClass = ""
     if (start != -1):
         oClass = line[start + 1: end]
         end = start
         
     ## Struct class
-    start = line.find("*")
+    start = line.find("*", 0, end)
     sClass = ""
     if (start != -1):
         sClass = line[start + 1: end]
         end = start
         
     ## Id   
-    start = line.find("#")
+    start = line.find("#", 0, end)
     oId = ""
     if (start != -1):
         oId = line[start + 1: end]
@@ -57,11 +59,12 @@ def modelLineParse(lineLen, line):
     ## Type
     oType = line[:end]
     
-    DObj = Object.new(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs={}, children=[])
+    obj = Object.new(otype=oType, oid=oId, sClass=sClass, klass=oClass, oattrs={}, children=[])
+    #print(str(obj))
     # str as an attribute as it niether key nor group?
     if (oStr):
-      DObj.oattrs["text"] = oStr
-    return DObj
+      obj.oattrs["text"] = oStr
+    return obj
     
             
 def modelParse(text):
@@ -428,11 +431,15 @@ if __name__ == "__main__":
     
   Reporter.testHeader("ModelParse")
   o = modelParse("""  VBox#support.warning  """)
-  print(str(o))
+  print(str(o.children[0]))
   # over-indexed
   #o = modelParse("""  #support  """, 0, 22)
   #print(str(o))
+  # handle late-repeated marks
+  o = modelParse("""  IconButton|/images/image.png  """)
+  print(str(o.children[0]))
   
+  Reporter.testHeader("ModelParseLint")  
   modelParseLint("VBox\n  Button|Go\n  Button|Stop ")
   # undefined type
   modelParseLint("VBox\n  Button|Go\n  ColourSelect|Stop ")
