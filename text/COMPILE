@@ -9,6 +9,6 @@
 == compile
 > meson build
 
-nav into build
+nav into build, then,
 > ninja
 > ./demo

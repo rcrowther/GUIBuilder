@@ -21,11 +21,11 @@ Two files. One for structure, one for style.
 
 
 === Structure File
-Includes widget-attached text (as in the HTRML concept of text nodes). 
+Includes widget-attached text (as in the HTML concept of text nodes). 
 
-One line for each object.
+One line for each object e.g.
 
-type#id.class.sClass;text
+widgetType#id.class*sClass|text
 
 ~~ sClass 
 :: is a class that identifies structural rather than display elements. Currently used for grouping radiobuttons.
@@ -36,7 +36,7 @@ Don't repeat a mark previous to a linebreak mark, but you can use one afterwards
 
         IconButton|/home/rob/Code/GUIBuilder/arrow.png
 
-but this id with a bar in it is not ok,
+but this id with a bar in it preceeds the intended text mark, so is not ok,
 
         IconButton#my|friend.hotspot|Huzzah
 
@@ -91,7 +91,7 @@ WidgetName {
   }
 
 == Example
-You need a commandline like,
+The code accepts the two configuration files. To run the code you need a commandline like,
 
 ./builder.py -v -ss test_style test_widget_gallery_struct 
 
