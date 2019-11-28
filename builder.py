@@ -11,15 +11,15 @@ from Object import WidgetTypes
 
 
 #? implicits == bad idea
+#? use equals, not bar
 #? Detect select mark in ObjectModel, not GTK
-#! external wiring?
+#! generate a stub file (or socket:) )
+#! File browser
 #! Spacing padding borders...
 #! cleanup GTK file
 #! Root warning is annoying
 #! empty struct makes code error
 #! comments for both config files
-#! labels need text, even if nothing. Or default?
-#? HBox homogenous
 
 def generateModel(structText, styleText, renderType):
     # Use for calls, this is the API.

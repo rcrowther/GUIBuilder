@@ -1,10 +1,26 @@
+
+== What is it?
+Build GTK GUIs by using two config files. Currently generates C code.
+
+Quite possible to add extra modules to produce other code, e.g. Python GTK code. Also generate code for other toolkits e.g. QT. But unlikely I'll do that.
+
+
+=== Current state
+Can not wire to anything. Demo or base-code purposes only.
+
+Parsers fairly robust, allowing whitespace and variable indents. Linting helpful but not comprehensive. Widget sets only for the smallest and most limited of interfaces.
+
+== Setup
 Follow directions in compile.
 
-Can not wire to anything. Demo purposes only.
+Have a look at the commandline help. The options include linting/debugging of the config files, and information from the code itself.
 
+
+== Config
 Two files. One for structure, one for style. 
 
-== Structure File
+
+=== Structure File
 Includes widget-attached text (as in the HTRML concept of text nodes). 
 
 One line for each object.
@@ -33,7 +49,7 @@ TopWin
 
 First object must be a TopWin, and currently always a TopWin
 
-=== Tweaks 
+==== Tweaks 
 To add the multiple texts for a SelectEntry, use a semi-colon,
 
         SelectEntry|Selection 1;Selection 2;Selection 3
@@ -58,7 +74,7 @@ Default size for widgets is natural height, not to expand. To allow a widget to 
 TextArea will expand.
 
 
-== Style File
+=== Style File
 Very few widgets accept style of any kind. There is some markup for labels, and padding on some objects. 
 
 Style is like a CSS file
@@ -87,10 +103,7 @@ Then compile with the meson/ninja builder.
 
 
 == Before you get to say anything...
-Yes, I know of GTKBuilder, Glade, and so much more.
-
-
-== Current state
-Parsers fairly robust, allow whitespace and variable indents. Linting helpful but not comprehensive. Widget sets only for the smallest and most limited of interfaces. 
+Yes, I know of GTKBuilder https://developer.gnome.org/gtk3/stable/GtkBuilder.html, Glade https://glade.gnome.org/, QMLhttps://en.wikipedia.org/wiki/QML etc.
+ 
 
 Fun. Fun? Fun.

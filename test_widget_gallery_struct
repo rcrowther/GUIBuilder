@@ -6,9 +6,10 @@ TopWin|Builder Demo
         EmptyButton|Empty button (undone)
 
         CheckButton|!Example Text
-        RadioButton*group1|Example Text 1
+        RadioButton*group1|Example Text 77
         RadioButton*group1|Example Text 2
         RadioButton*group1|!Example Text 3
+        RadioButton*group1|Clear
 
         SelectEntry|Selection 1;!Selection 2;Selection 3
         TextEntry
